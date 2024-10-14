@@ -65,14 +65,14 @@ DeviceInfo::deviceList()
 	QList<QByteArray> devices = adb.readResponse().split('\n');
 	for(const QByteArray &dev : devices) {
 		QByteArray info = dev.simplified();
-		if(info.isEmpty())
-			continue;
+        if (info.size() < 2)
+            continue;
 
-		const int i = info.indexOf(' ');
-		devList.insert(info.left(i), info.mid(i + 1));
-	}
+        const int i = info.indexOf(' ');
+        devList.insert(info.left(i), info.mid(i + 1));
+    }
 
-	return devList;
+    return devList;
 }
 
 static bool
@@ -114,27 +114,24 @@ DeviceInfo::connect(const char *deviceId)
 	// android version
 	aDev->m_androidVer = AdbClient::shell("getprop ro.build.version.release").simplified();
 
-	// screen resolution
-	QByteArray res = AdbClient::shell("dumpsys display | grep -E 'mDisplayWidth|mDisplayHeight'").replace('\n', '\0');
-	int i = res.indexOf("mDisplayWidth");
-	if(i != -1) {
-		aDev->m_screenWidth = i != -1 ? res.mid(res.indexOf('=', i) + 1).toInt() : 0;
-		i = res.indexOf("DisplayHeight");
-		aDev->m_screenHeight = i != -1 ? res.mid(res.indexOf('=', i) + 1).toInt() : 0;
-	} else {
-		res = AdbClient::shell("dumpsys display | grep mDefaultViewport").replace('\n', '\0');
-		QRegExp re("\\b(deviceWidth|deviceHeight)=(\\d+)\\b");
-		i = re.indexIn(res, 0);
-		aDev->m_screenWidth = i != -1 ? re.cap(2).toInt() : 0;
-		i = re.indexIn(res, i + re.matchedLength());
-		aDev->m_screenHeight = i != -1 ? re.cap(2).toInt() : 0;
-	}
-	aDev->m_screenRotation = (360 + AdbClient::shell("getprop ro.sf.hwrotation").simplified().toInt()) % 360;
+    // screen resolution
+    // @picosaur
+    QByteArray res = AdbClient::shell(
+        "dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
+    QRegExp re("\\b(StableDisplayWidth|StableDisplayHeight)=(\\d+)\\b");
+    int i{};
+    i = re.indexIn(res, 0);
+    aDev->m_screenWidth = i != -1 ? re.cap(2).toInt() : 0;
+    i = re.indexIn(res, i + re.matchedLength());
+    aDev->m_screenHeight = i != -1 ? re.cap(2).toInt() : 0;
+    aDev->m_screenRotation = (360
+                              + AdbClient::shell("getprop ro.sf.hwrotation").simplified().toInt())
+                             % 360;
 
-	qDebug() << "DEVICE connected"
-			 << "\n\tandroid:" << aDev->m_androidVer
-			 << "\n\tscreen:" << aDev->m_screenWidth << 'x' << aDev->m_screenHeight << ' ' << aDev->m_screenRotation << "deg"
-			 << "\n\tarch:" << (aDev->m_arch64 ? "64-bit" : "32-bit");
+    qDebug() << "DEVICE connected"
+             << "\n\tandroid:" << aDev->m_androidVer << "\n\tscreen:" << aDev->m_screenWidth << 'x'
+             << aDev->m_screenHeight << ' ' << aDev->m_screenRotation << "deg"
+             << "\n\tarch:" << (aDev->m_arch64 ? "64-bit" : "32-bit");
 }
 
 void

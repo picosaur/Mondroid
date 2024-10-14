@@ -45,13 +45,13 @@ InitThread::run()
 		return;
 	}
 
-//	DeviceList devices = DeviceInfo::deviceList();
-//	DeviceInfo::connect(devices.firstKey());
-	DeviceInfo::connect();
+    DeviceList devices = DeviceInfo::deviceList();
+    DeviceInfo::connect(devices.firstKey());
+    //DeviceInfo::connect();
 
-	emit deviceConnected();
+    emit deviceConnected();
 
-	DeviceInfo::initInput();
+    DeviceInfo::initInput();
 
-	emit inputReady();
+    emit inputReady();
 }
