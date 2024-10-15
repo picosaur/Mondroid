@@ -17,58 +17,27 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "device/deviceinfo.h"
-#include <QMouseEvent>
 #include <QDebug>
 #include <QLibraryInfo>
-
-#define STR_(x) #x
-#define STR(x) STR_(x)
+#include <QMouseEvent>
+#include <QTimer>
+#include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent),
-	  ui(new Ui::MainWindow),
-	  m_initThread(nullptr),
-	  m_videoThread(nullptr)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
-	ui->screen->setFocusPolicy(Qt::StrongFocus);
-	ui->screen->setFocus();
+    m_scrollArea = new ScrollArea(this);
+    setCentralWidget(m_scrollArea);
 }
 
 MainWindow::~MainWindow()
 {
-	delete m_initThread;
-	delete m_videoThread;
-	delete ui;
+    delete ui;
 }
 
 void MainWindow::init()
 {
-	m_initThread = new InitThread();
-	connect(m_initThread, &InitThread::deviceConnected, this, &MainWindow::onDeviceReady);
-	connect(m_initThread, &InitThread::inputReady, this, &MainWindow::onInputReady);
-	m_initThread->start();
-}
-
-void MainWindow::onDeviceReady()
-{
-	QPixmap img(IMAGE_WIDTH, IMAGE_WIDTH * aDev->screenHeight() / aDev->screenWidth());
-	img.fill(Qt::black);
-	ui->screen->setPixmap(img);
-    //adjustSize();
-    //setFixedSize(sizeHint());
-
-    // start video thread
-	m_videoThread = new VideoThread();
-	connect(m_videoThread, &VideoThread::imageReady, this, &MainWindow::updateScreen);
-	m_videoThread->start();
-}
-
-void MainWindow::onInputReady() {}
-
-void MainWindow::updateScreen(const QImage &image)
-{
-	ui->screen->setPixmap(QPixmap::fromImage(image));
+    m_scrollArea->init();
 }

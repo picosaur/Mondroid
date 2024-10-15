@@ -33,14 +33,7 @@ extern "C" {
 }
 
 VideoThread::VideoThread(QObject *parent)
-	: QThread(parent),
-	  m_adb(nullptr),
-	  m_avFormat(nullptr),
-	  m_avStream(nullptr),
-	  m_codecCtx(nullptr),
-	  m_swsContext(nullptr),
-	  m_frame(nullptr),
-	  m_rgbFrame(nullptr)
+    : QThread(parent)
 {
 }
 
@@ -50,16 +43,20 @@ VideoThread::~VideoThread()
 	wait();
 }
 
-const char *
-VideoThread::h264Error(int errorCode)
+void VideoThread::setImageSize(int w, int h)
+{
+    m_imageWidth = w;
+    m_imageHeight = h;
+}
+
+const char *VideoThread::h264Error(int errorCode)
 {
 	static char errorText[1024];
 	av_strerror(errorCode, errorText, sizeof(errorText));
 	return errorText;
 }
 
-bool
-VideoThread::h264Connect()
+bool VideoThread::h264Connect()
 {
 	if(!m_adb->connectToDevice())
 		return false;
@@ -76,8 +73,7 @@ VideoThread::h264Connect()
 	return true;
 }
 
-bool
-VideoThread::h264Init()
+bool VideoThread::h264Init()
 {
 	auto read_packet = [](void *u, uint8_t *buf, int buf_size)->int{
 		VideoThread *me = reinterpret_cast<VideoThread *>(u);
@@ -154,8 +150,7 @@ VideoThread::h264Init()
 	return true;
 }
 
-int
-VideoThread::h264VideoStreamIndex()
+int VideoThread::h264VideoStreamIndex()
 {
 	int streamIndex = -1;
 	int ret;
@@ -204,8 +199,7 @@ VideoThread::h264VideoStreamIndex()
 	return streamIndex;
 }
 
-bool
-VideoThread::h264Process()
+bool VideoThread::h264Process()
 {
 	if(!h264Init()) {
 		h264Exit();
@@ -276,8 +270,7 @@ VideoThread::h264Process()
 	return res;
 }
 
-void
-VideoThread::h264Exit()
+void VideoThread::h264Exit()
 {
 	if(m_swsContext)
 		sws_freeContext(m_swsContext);
@@ -293,16 +286,12 @@ VideoThread::h264Exit()
 	}
 }
 
-void
-VideoThread::run()
+void VideoThread::run()
 {
-	m_imageWidth = IMAGE_WIDTH;
-	m_imageHeight = IMAGE_WIDTH * aDev->screenHeight() / aDev->screenWidth();
+    m_adb = new AdbClient();
 
-	m_adb = new AdbClient();
-
-	if(h264Process() || isInterruptionRequested())
-		return;
+    if (h264Process() || isInterruptionRequested())
+        return;
 
     bool canJpeg = false;
     bool canPng = false;

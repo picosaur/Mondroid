@@ -17,9 +17,7 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "initthread.h"
-
 #include "device/deviceinfo.h"
-#include "input/monkeyhandler.h"
 
 #include <QApplication>
 #include <QWidget>
@@ -38,11 +36,11 @@ InitThread::~InitThread()
 
 void InitThread::run()
 {
-	// start adb server and wait for device
-	if(!DeviceInfo::waitForDevice()) {
-		QApplication::quit();
-		return;
-	}
+    // start adb server and wait for device
+    //if(!DeviceInfo::waitForDevice()) {
+    //	QApplication::quit();
+    //	return;
+    //}
 
     DeviceList devices = DeviceInfo::deviceList();
     DeviceInfo::connect(devices.lastKey());

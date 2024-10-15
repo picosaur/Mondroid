@@ -23,8 +23,6 @@
 
 #include "adbclient.h"
 
-#define IMAGE_WIDTH 360
-
 struct AVFormatContext;
 struct AVStream;
 struct AVCodecContext;
@@ -34,9 +32,12 @@ struct AVFrame;
 class VideoThread : public QThread
 {
 	Q_OBJECT
+
 public:
 	VideoThread(QObject *parent = nullptr);
 	~VideoThread();
+
+    void setImageSize(int w, int h);
 
 signals:
     void imageReady(const QImage &image);
@@ -52,17 +53,17 @@ private:
 	bool h264Process();
 	void h264Exit();
 
-	AdbClient *m_adb;
-	int m_imageWidth;
-	int m_imageHeight;
+    AdbClient *m_adb{};
+    int m_imageWidth{426};
+    int m_imageHeight{240};
 
-	AVFormatContext *m_avFormat;
-	AVStream *m_avStream;
-	AVCodecContext *m_codecCtx;
-	SwsContext *m_swsContext;
-	AVFrame *m_frame;
-	AVFrame *m_rgbFrame;
-	bool m_h264Active;
+    AVFormatContext *m_avFormat{};
+    AVStream *m_avStream{};
+    AVCodecContext *m_codecCtx{};
+    SwsContext *m_swsContext{};
+    AVFrame *m_frame{};
+    AVFrame *m_rgbFrame{};
+    bool m_h264Active{};
 };
 
 #endif // VIDEOTHREAD_H

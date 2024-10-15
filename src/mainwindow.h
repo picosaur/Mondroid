@@ -20,10 +20,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QTimer>
-#include "device/adbclient.h"
-#include "device/videothread.h"
-#include "initthread.h"
+#include "scrollarea.h"
 
 namespace Ui {
 class MainWindow;
@@ -39,21 +36,9 @@ public:
 
 	void init();
 
-protected:
-	void sendMouseDown();
-
-public slots:
-	void onDeviceReady();
-	void onInputReady();
-	void updateScreen(const QImage &image);
-
 private:
-	Ui::MainWindow *ui;
-
-	InitThread *m_initThread;
-	VideoThread *m_videoThread;
-
-	AdbClient m_adbTouch;
+    Ui::MainWindow *ui{};
+    ScrollArea *m_scrollArea{};
 };
 
 #endif // MAINWINDOW_H
