@@ -22,9 +22,6 @@
 #include <QPixmap>
 #include <QDebug>
 
-//#define ADB_DEBUG_CONN
-//#define ADB_DEBUG_SHELL
-
 AdbClient::AdbClient(QObject *parent)
 	: QObject(parent)
 {
@@ -32,11 +29,6 @@ AdbClient::AdbClient(QObject *parent)
 	connect(&m_sock, QOverload<QTcpSocket::SocketError>::of(&QTcpSocket::error), this, &AdbClient::onError);
 	connect(&m_sock, &QTcpSocket::readyRead, this, &AdbClient::readyRead);
 	connect(&m_sock, &QTcpSocket::bytesWritten, this, &AdbClient::bytesWritten);
-#ifdef ADB_DEBUG_CONN
-	connect(&m_sock, &QTcpSocket::stateChanged, [&](QTcpSocket::SocketState state){
-		qDebug() << "ADB CONN:" << state;
-	});
-#endif
 }
 
 AdbClient::~AdbClient()
@@ -44,8 +36,7 @@ AdbClient::~AdbClient()
 	m_sock.close();
 }
 
-bool
-AdbClient::write(const void *data, qint64 max)
+bool AdbClient::write(const void *data, qint64 max)
 {
     int done = 0;
     while(max > done) {
@@ -59,8 +50,7 @@ AdbClient::write(const void *data, qint64 max)
 	return m_sock.waitForBytesWritten();
 }
 
-bool
-AdbClient::read(void *data, qint64 max)
+bool AdbClient::read(void *data, qint64 max)
 {
     int done = 0;
     while(max > done) {
@@ -78,33 +68,29 @@ AdbClient::read(void *data, qint64 max)
     return true;
 }
 
-QByteArray
-AdbClient::readAll()
+QByteArray AdbClient::readAll()
 {
 	QByteArray buf;
-
-	while(m_sock.waitForReadyRead())
-		buf.append(m_sock.readAll());
-	Q_ASSERT(m_sock.state() == QAbstractSocket::UnconnectedState);
+    while (m_sock.waitForReadyRead()) {
+        buf.append(m_sock.readAll());
+    }
+    Q_ASSERT(m_sock.state() == QAbstractSocket::UnconnectedState);
 	return buf;
 }
 
-QByteArray
-AdbClient::readLine()
+QByteArray AdbClient::readLine()
 {
 	while(!m_sock.canReadLine() && m_sock.waitForReadyRead());
 	return m_sock.readLine();
 }
 
-QByteArray
-AdbClient::readAvailable()
+QByteArray AdbClient::readAvailable()
 {
 	m_sock.waitForReadyRead();
 	return m_sock.readAll();
 }
 
-bool
-AdbClient::readStatus()
+bool AdbClient::readStatus()
 {
 	char buf[256];
 
@@ -114,9 +100,6 @@ AdbClient::readStatus()
 	}
 
 	if(memcmp(buf, "OKAY", 4) == 0) {
-#ifdef ADB_DEBUG_CONN
-		qDebug() << "ADB OKAY";
-#endif
 		return true;
 	}
 
@@ -143,8 +126,7 @@ AdbClient::readStatus()
 	return false;
 }
 
-QByteArray
-AdbClient::readResponse()
+QByteArray AdbClient::readResponse()
 {
 	int len = 0;
 	{
@@ -169,8 +151,7 @@ AdbClient::readResponse()
 	return QByteArray();
 }
 
-bool
-AdbClient::send(QByteArray command)
+bool AdbClient::send(QByteArray command)
 {
 	if(m_sock.state() != QTcpSocket::ConnectedState) {
 		connectToHost();
@@ -182,9 +163,6 @@ AdbClient::send(QByteArray command)
 
 	write(QString("%1").arg(command.size(), 4, 16, QChar('0')).toLatin1());
 	write(command);
-#ifdef ADB_DEBUG_CONN
-	qDebug() << "ADB SEND" << command;
-#endif
 
 	return readStatus();
 }
@@ -197,9 +175,7 @@ AdbClient::connectToHost()
 	m_sock.connectToHost(QStringLiteral("localhost"), 5037, QIODevice::ReadWrite);
 }
 
-
-bool
-AdbClient::connectToDevice()
+bool AdbClient::connectToDevice()
 {
 	QByteArray cmd("host:transport");
 	if(aDev->deviceId().isEmpty())
@@ -215,8 +191,7 @@ AdbClient::connectToDevice()
 	return true;
 }
 
-bool
-AdbClient::forwardTcpPort(int local, int remote)
+bool AdbClient::forwardTcpPort(int local, int remote)
 {
 	QByteArray cmd;
 	if(aDev->deviceId().isEmpty())
@@ -235,8 +210,7 @@ AdbClient::forwardTcpPort(int local, int remote)
 	return true;
 }
 
-bool
-AdbClient::fetchScreenRawInit()
+bool AdbClient::fetchScreenRawInit()
 {
 	if(!connectToDevice())
 		return false;
@@ -284,8 +258,7 @@ AdbClient::fetchScreenRawInit()
 	return true;
 }
 
-QImage
-AdbClient::fetchScreenRaw()
+QImage AdbClient::fetchScreenRaw()
 {
 	QElapsedTimer timer;
 	timer.start();
@@ -317,13 +290,10 @@ AdbClient::fetchScreenRaw()
 	m_sock.readAll();
 	m_sock.waitForDisconnected();
 
-	qDebug() << "FRAMEBUFFER RAW frame retrieved in" << timer.elapsed() << "ms";
-
 	return img;
 }
 
-QImage
-AdbClient::fetchScreenPng()
+QImage AdbClient::fetchScreenPng()
 {
 	QElapsedTimer timer;
 	timer.start();
@@ -337,13 +307,11 @@ AdbClient::fetchScreenPng()
 	}
 
 	QByteArray res = readAll();
-	qDebug() << "FRAMEBUFFER PNG frame retrieved in" << timer.elapsed() << "ms";
 
 	return QImage::fromData(res);
 }
 
-QImage
-AdbClient::fetchScreenJpeg()
+QImage AdbClient::fetchScreenJpeg()
 {
 	QElapsedTimer timer;
 	timer.start();
@@ -357,13 +325,11 @@ AdbClient::fetchScreenJpeg()
 	}
 
 	QByteArray res = readAll();
-	qDebug() << "SCREEN JPEG frame retrieved in" << timer.elapsed() << "ms";
 
 	return QImage::fromData(res);
 }
 
-/*static*/ QByteArray
-AdbClient::shell(const char *cmd)
+QByteArray AdbClient::shell(const char *cmd)
 {
 	AdbClient adb;
 
@@ -375,15 +341,10 @@ AdbClient::shell(const char *cmd)
 		return QByteArray();
 	}
 
-#ifdef ADB_DEBUG_SHELL
-	qWarning() << "SHELL" << cmd;
-#endif
-
 	return adb.readAll();
 }
 
-bool
-AdbClient::sendEvents(AdbEventList events)
+bool AdbClient::sendEvents(AdbEventList events)
 {
 	for(const AdbEvent &evt : events) {
 		if(!write(&evt, sizeof(AdbEvent))) {
@@ -395,8 +356,7 @@ AdbClient::sendEvents(AdbEventList events)
 	return true;
 }
 
-/*static*/ bool
-AdbClient::sendEvents(int deviceIndex, AdbEventList events)
+bool AdbClient::sendEvents(int deviceIndex, AdbEventList events)
 {
 	AdbClient adb;
 	if(!adb.connectToDevice())

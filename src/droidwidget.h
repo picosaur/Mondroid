@@ -5,6 +5,7 @@
 #include <QWidget>
 #include "device/videothread.h"
 #include "initthread.h"
+#include <qscrollarea.h>
 
 class DroidWidget : public QWidget
 {
@@ -22,9 +23,10 @@ public slots:
     void updateScreen(const QImage &image);
 
 private:
+    QVBoxLayout *m_layout{};
+    QScrollArea *m_area{};
+    QLabel *m_screen{};
     InitThread *m_initThread{};
     VideoThread *m_videoThread{};
-    QVBoxLayout *m_layout{};
-    QLabel *m_screen{};
 };
 #endif // DROIDWIDGET_H

@@ -44,7 +44,7 @@ set(divvydroid_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/device/videothread.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/initthread.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/scrollarea.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/gridwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/droidwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/toolbar.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.cpp

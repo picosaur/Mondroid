@@ -11,11 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string notr="true">DivvyDroid</string>
-  </property>
-  <property name="windowIcon">
-   <iconset resource="../res/divvydroid.qrc">
-    <normaloff>:/icons/android-debug-bridge.svg</normaloff>:/icons/android-debug-bridge.svg</iconset>
+   <string notr="true">MonDroid</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -38,8 +34,6 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources>
-  <include location="../res/divvydroid.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

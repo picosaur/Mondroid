@@ -54,18 +54,17 @@ private:
 	bool h264Connect();
 	bool h264Init();
 	int h264VideoStreamIndex();
-	bool h264Process();
-	void h264Exit();
+    bool h264Loop();
+    void h264Exit();
 
-    void nativeProcess();
+    void nativeLoop();
 
     VideMode m_videoMode{FastH264};
-    int m_imageWidth{426};
-    int m_imageHeight{240};
+    int m_imageWidth{640};
+    int m_imageHeight{360};
     unsigned long m_nativeInterval{10};
 
     AdbClient *m_adb{};
-
     AVFormatContext *m_avFormat{};
     AVStream *m_avStream{};
     AVCodecContext *m_codecCtx{};

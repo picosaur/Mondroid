@@ -1,4 +1,4 @@
-project(DivvyDroid)
+project(MonDroid)
 
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 set(QT_MIN_VERSION "5.3.0")

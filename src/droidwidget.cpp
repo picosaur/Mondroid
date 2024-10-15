@@ -1,18 +1,22 @@
 #include "droidwidget.h"
+#include <QLineEdit>
 #include <qboxlayout.h>
 
 DroidWidget::DroidWidget(QWidget *parent)
     : QWidget(parent)
 {
-    m_screen = new QLabel();
     m_layout = new QVBoxLayout();
-    setLayout(m_layout);
-    m_layout->addWidget(m_screen);
+    m_area = new QScrollArea();
+    m_screen = new QLabel();
 
-    QPixmap img(640, 360);
-    img.fill(Qt::darkGray);
-    m_screen->setPixmap(img);
-    m_screen->setAlignment(Qt::AlignCenter);
+    m_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    m_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    m_area->setWidget(m_screen);
+
+    m_layout->addWidget(m_area);
+    m_layout->addWidget(new QLineEdit("192.168.1.122"));
+
+    setLayout(m_layout);
 }
 
 DroidWidget::~DroidWidget()
@@ -31,8 +35,9 @@ void DroidWidget::init()
 
 void DroidWidget::onDeviceReady()
 {
-    // start video thread
     m_videoThread = new VideoThread();
+    m_videoThread->setVideoMode(VideoThread::FastH264);
+    m_videoThread->setImageSize(720, 1280);
     connect(m_videoThread, &VideoThread::imageReady, this, &DroidWidget::updateScreen);
     m_videoThread->start();
 }
@@ -42,4 +47,5 @@ void DroidWidget::onInputReady() {}
 void DroidWidget::updateScreen(const QImage &image)
 {
     m_screen->setPixmap(QPixmap::fromImage(image));
+    m_screen->setFixedSize(image.size());
 }
