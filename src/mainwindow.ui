@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>320</width>
-    <height>480</height>
+    <width>512</width>
+    <height>410</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -51,7 +51,7 @@
          <bool>false</bool>
         </property>
         <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
         </property>
        </widget>
       </item>
@@ -61,176 +61,20 @@
          <number>6</number>
         </property>
         <item>
-         <widget class="QPushButton" name="btnMenu">
-          <property name="icon">
-           <iconset resource="../res/divvydroid.qrc">
-            <normaloff>:/icons/menu.svg</normaloff>:/icons/menu.svg</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>24</width>
-            <height>24</height>
-           </size>
+         <widget class="QPushButton" name="pushButton">
+          <property name="text">
+           <string>Btn 1</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="btnHome">
-          <property name="icon">
-           <iconset resource="../res/divvydroid.qrc">
-            <normaloff>:/icons/home.svg</normaloff>:/icons/home.svg</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>24</width>
-            <height>24</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="btnBack">
-          <property name="icon">
-           <iconset resource="../res/divvydroid.qrc">
-            <normaloff>:/icons/undo-variant.svg</normaloff>:/icons/undo-variant.svg</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>24</width>
-            <height>24</height>
-           </size>
+         <widget class="QPushButton" name="pushButton_2">
+          <property name="text">
+           <string>Btn 2</string>
           </property>
          </widget>
         </item>
        </layout>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QVBoxLayout" name="btnRight">
-      <property name="leftMargin">
-       <number>6</number>
-      </property>
-      <item>
-       <spacer name="spc1">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnPower">
-        <property name="text">
-         <string>Power</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../res/divvydroid.qrc">
-          <normaloff>:/icons/power-standby.svg</normaloff>:/icons/power-standby.svg</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnUnlock">
-        <property name="text">
-         <string>Unlock</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../res/divvydroid.qrc">
-          <normaloff>:/icons/lock-open.svg</normaloff>:/icons/lock-open.svg</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="spc2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QGroupBox" name="grpVolume">
-        <property name="title">
-         <string>Volume</string>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="QPushButton" name="btnVolumeDown">
-           <property name="icon">
-            <iconset resource="../res/divvydroid.qrc">
-             <normaloff>:/icons/volume-minus.svg</normaloff>:/icons/volume-minus.svg</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="btnVolumeUp">
-           <property name="icon">
-            <iconset resource="../res/divvydroid.qrc">
-             <normaloff>:/icons/volume-plus.svg</normaloff>:/icons/volume-plus.svg</iconset>
-           </property>
-           <property name="iconSize">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <spacer name="spc3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="btnAbout">
-        <property name="text">
-         <string>About</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../res/divvydroid.qrc">
-          <normaloff>:/icons/information-outline.svg</normaloff>:/icons/information-outline.svg</iconset>
-        </property>
-       </widget>
       </item>
      </layout>
     </item>

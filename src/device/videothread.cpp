@@ -65,9 +65,7 @@ VideoThread::h264Connect()
 		return false;
 
 	QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 --size ");
-	cmd
-		.append(QString::number(720)).append('x')
-		.append(QString::number(720 * aDev->screenHeight() / aDev->screenWidth())).append(" -");
+	cmd.append(QString::number(720)).append('x').append(QString::number(720 * aDev->screenHeight() / aDev->screenWidth())).append(" -");
 
 	if(!m_adb->send(cmd)) {
 		qWarning() << "FRAMEBUFFER error executing" << cmd.mid(6);
@@ -306,29 +304,29 @@ VideoThread::run()
 	if(h264Process() || isInterruptionRequested())
 		return;
 
-	bool canJpeg = false;
-	bool canPng = false;
-	bool canRaw = true;
+    bool canJpeg = false;
+    bool canPng = false;
+    bool canRaw = true;
 
-	if(m_adb->connectToDevice()) {
-		if(!m_adb->send("shell:screencap -h")) {
-			qWarning() << "FRAMEBUFFER error executing screencap -h";
-		} else {
-			const QList<QByteArray> res = m_adb->readAll().split('\n');
-			for(QByteArray line : res) {
-				if(line.trimmed().startsWith("-j:"))
+    if (m_adb->connectToDevice()) {
+        if (!m_adb->send("shell:screencap -h")) {
+            qWarning() << "FRAMEBUFFER error executing screencap -h";
+        } else {
+            const QList<QByteArray> res = m_adb->readAll().split('\n');
+            for (QByteArray line : res) {
+                if(line.trimmed().startsWith("-j:"))
 					canJpeg = true;
 				else if(line.trimmed().startsWith("-p:"))
 					canPng = true;
-			}
-		}
-		m_adb->waitForDisconnected();
-	}
+            }
+        }
+        m_adb->waitForDisconnected();
+    }
 
-	while(!isInterruptionRequested()) {
-		QImage img;
-		if(aDev->isScreenAwake()) {
-			if(canJpeg)
+    while (!isInterruptionRequested()) {
+        QImage img;
+        if (aDev->isScreenAwake()) {
+            if(canJpeg)
 				img = m_adb->fetchScreenJpeg();
 			else if(canRaw)
 				img = m_adb->fetchScreenRaw();
@@ -336,20 +334,21 @@ VideoThread::run()
 				img = m_adb->fetchScreenPng();
 			else
 				return;
-			switch(aDev->screenRotation()) {
+
+            switch(aDev->screenRotation()) {
 			case 0: break;
 			case 180: img = img.mirrored(true, true); break;
 			default: { QTransform t; t.rotate(aDev->screenRotation()); img = img.transformed(t); } break;
 			}
-		} else {
-			img = QImage(m_imageWidth, m_imageHeight, QImage::Format_RGB888);
+        } else {
+            img = QImage(m_imageWidth, m_imageHeight, QImage::Format_RGB888);
 			img.fill(Qt::black);
-		}
-		emit imageReady(img.scaledToWidth(m_imageWidth, Qt::SmoothTransformation));
+        }
+        emit imageReady(img.scaledToWidth(m_imageWidth, Qt::SmoothTransformation));
 		msleep(10);
-	}
+    }
 
-	m_adb->close();
-	m_adb->waitForDisconnected();
-	delete m_adb;
+    m_adb->close();
+    m_adb->waitForDisconnected();
+    delete m_adb;
 }

@@ -32,12 +32,11 @@ InitThread::InitThread(QObject *parent)
 
 InitThread::~InitThread()
 {
-	requestInterruption();
-	wait();
+    requestInterruption();
+    wait();
 }
 
-void
-InitThread::run()
+void InitThread::run()
 {
 	// start adb server and wait for device
 	if(!DeviceInfo::waitForDevice()) {
@@ -46,7 +45,7 @@ InitThread::run()
 	}
 
     DeviceList devices = DeviceInfo::deviceList();
-    DeviceInfo::connect(devices.firstKey());
+    DeviceInfo::connect(devices.lastKey());
     //DeviceInfo::connect();
 
     emit deviceConnected();

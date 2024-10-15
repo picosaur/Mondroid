@@ -17,7 +17,6 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "device/deviceinfo.h"
-
 #include "adbclient.h"
 
 #include <QProcess>
@@ -35,17 +34,17 @@ DeviceInfo::DeviceInfo(const char *deviceId)
 {
 }
 
-bool
-DeviceInfo::waitForDevice()
+bool DeviceInfo::waitForDevice()
 {
 	QProcess shell;
+    /*
 	shell.start(QStringLiteral("adb"), QStringList() << QStringLiteral("wait-for-device"));
 	if(!shell.waitForFinished() || shell.exitCode()) {
 		qWarning() << "Failed to start adb server.";
-		return false;
-	}
+        return false;
+    }*/
 
-	shell.start(QStringLiteral("adb"), QStringList() << QStringLiteral("root"));
+    shell.start(QStringLiteral("adb"), QStringList() << QStringLiteral("root"));
 	if(!shell.waitForFinished() || shell.exitCode()) {
 		qDebug() << "Failed to restart adb server with root permissions.";
 	}
@@ -53,8 +52,7 @@ DeviceInfo::waitForDevice()
 	return true;
 }
 
-DeviceList
-DeviceInfo::deviceList()
+DeviceList DeviceInfo::deviceList()
 {
 	AdbClient adb;
 	if(!adb.send("host:devices-l"))
@@ -75,8 +73,7 @@ DeviceInfo::deviceList()
     return devList;
 }
 
-static bool
-deviceIsWritable(int deviceNr)
+static bool deviceIsWritable(int deviceNr)
 {
 	AdbClient adb;
 	if(!adb.connectToDevice())
@@ -88,8 +85,7 @@ deviceIsWritable(int deviceNr)
 	return true;
 }
 
-static bool
-inputHasKey(const QVector<quint64> keyBits, quint64 keyCode)
+static bool inputHasKey(const QVector<quint64> keyBits, quint64 keyCode)
 {
 	const int byte = keyCode / (aDev->isArch64() ? 64 : 32);
 	const int bit = keyCode % (aDev->isArch64() ? 64 : 32);
@@ -100,9 +96,7 @@ inputHasKey(const QVector<quint64> keyBits, quint64 keyCode)
 	return (keyBits.at(byte) & (1ull << bit)) != 0;
 }
 
-
-void
-DeviceInfo::connect(const char *deviceId)
+void DeviceInfo::connect(const char *deviceId)
 {
 	delete aDev;
 	aDev = new DeviceInfo(deviceId);
@@ -115,7 +109,6 @@ DeviceInfo::connect(const char *deviceId)
 	aDev->m_androidVer = AdbClient::shell("getprop ro.build.version.release").simplified();
 
     // screen resolution
-    // @picosaur
     QByteArray res = AdbClient::shell(
         "dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
     QRegExp re("\\b(StableDisplayWidth|StableDisplayHeight)=(\\d+)\\b");

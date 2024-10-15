@@ -39,12 +39,6 @@ set(divvydroid_LIBS
 )
 
 set(divvydroid_SRCS
-	${CMAKE_CURRENT_SOURCE_DIR}/input/devicetouchhandler.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/input/devicebuttonhandler.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/input/input_to_adroid_keys.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/input/inputhandler.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/input/monkeyhandler.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/input/shellkeyboardhandler.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/device/adbclient.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/device/deviceinfo.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/device/videothread.cpp
