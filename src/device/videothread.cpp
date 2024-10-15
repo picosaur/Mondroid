@@ -49,6 +49,16 @@ void VideoThread::setImageSize(int w, int h)
     m_imageHeight = h;
 }
 
+void VideoThread::setNativeInterval(unsigned long ms)
+{
+    m_nativeInterval = ms;
+}
+
+void VideoThread::setVideoMode(VideMode mode)
+{
+    m_videoMode = mode;
+}
+
 const char *VideoThread::h264Error(int errorCode)
 {
 	static char errorText[1024];
@@ -286,57 +296,37 @@ void VideoThread::h264Exit()
 	}
 }
 
-void VideoThread::run()
+void VideoThread::nativeProcess()
 {
-    m_adb = new AdbClient();
-
-    if (h264Process() || isInterruptionRequested())
-        return;
-
-    bool canJpeg = false;
-    bool canPng = false;
-    bool canRaw = true;
-
-    if (m_adb->connectToDevice()) {
-        if (!m_adb->send("shell:screencap -h")) {
-            qWarning() << "FRAMEBUFFER error executing screencap -h";
-        } else {
-            const QList<QByteArray> res = m_adb->readAll().split('\n');
-            for (QByteArray line : res) {
-                if(line.trimmed().startsWith("-j:"))
-					canJpeg = true;
-				else if(line.trimmed().startsWith("-p:"))
-					canPng = true;
-            }
-        }
-        m_adb->waitForDisconnected();
-    }
-
     while (!isInterruptionRequested()) {
         QImage img;
         if (aDev->isScreenAwake()) {
-            if(canJpeg)
-				img = m_adb->fetchScreenJpeg();
-			else if(canRaw)
-				img = m_adb->fetchScreenRaw();
-			else if(canPng)
-				img = m_adb->fetchScreenPng();
-			else
-				return;
-
-            switch(aDev->screenRotation()) {
-			case 0: break;
-			case 180: img = img.mirrored(true, true); break;
-			default: { QTransform t; t.rotate(aDev->screenRotation()); img = img.transformed(t); } break;
-			}
+            if (m_videoMode == NativeJpg) {
+                img = m_adb->fetchScreenJpeg();
+            } else if (m_videoMode == NativeRaw) {
+                img = m_adb->fetchScreenRaw();
+            } else if (m_videoMode == NativePng) {
+                img = m_adb->fetchScreenPng();
+            } else {
+                return;
+            }
         } else {
             img = QImage(m_imageWidth, m_imageHeight, QImage::Format_RGB888);
-			img.fill(Qt::black);
+            img.fill(Qt::black);
         }
         emit imageReady(img.scaledToWidth(m_imageWidth, Qt::SmoothTransformation));
-		msleep(10);
+        msleep(m_nativeInterval);
     }
+}
 
+void VideoThread::run()
+{
+    m_adb = new AdbClient();
+    if (m_videoMode == FastH264) {
+        h264Process();
+    } else {
+        nativeProcess();
+    }
     m_adb->close();
     m_adb->waitForDisconnected();
     delete m_adb;

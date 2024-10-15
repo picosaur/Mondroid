@@ -13,10 +13,9 @@ ScrollArea::ScrollArea(QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setWidget(m_gridWidget);
 
-    for (int i{}; i != 6; ++i) {
-        for (int j{}; j != 6; ++j) {
+    for (int i{}; i != 3; ++i) {
+        for (int j{}; j != 4; ++j) {
             auto droidw{new DroidWidget()};
-            droidw->setFixedSize({426, 240});
             m_gridLayout->addWidget(droidw, i, j);
             m_droidWidgets.push_back(droidw);
         }

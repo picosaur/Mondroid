@@ -21,6 +21,7 @@
 
 #include <QMainWindow>
 #include "scrollarea.h"
+#include "toolbar.h"
 
 namespace Ui {
 class MainWindow;
@@ -38,6 +39,7 @@ public:
 
 private:
     Ui::MainWindow *ui{};
+    Toolbar *m_toolbar{};
     ScrollArea *m_scrollArea{};
 };
 

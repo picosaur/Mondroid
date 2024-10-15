@@ -39,6 +39,7 @@ typedef QList<AdbEvent> AdbEventList;
 class AdbClient : public QObject
 {
 	Q_OBJECT
+
 public:
 	explicit AdbClient(QObject *parent = nullptr);
 	virtual ~AdbClient();

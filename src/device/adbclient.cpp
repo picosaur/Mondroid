@@ -17,9 +17,7 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "adbclient.h"
-
 #include "deviceinfo.h"
-
 #include <QElapsedTimer>
 #include <QPixmap>
 #include <QDebug>

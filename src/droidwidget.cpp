@@ -9,9 +9,10 @@ DroidWidget::DroidWidget(QWidget *parent)
     setLayout(m_layout);
     m_layout->addWidget(m_screen);
 
-    QPixmap img(854, 480);
-    img.fill(Qt::black);
+    QPixmap img(640, 360);
+    img.fill(Qt::darkGray);
     m_screen->setPixmap(img);
+    m_screen->setAlignment(Qt::AlignCenter);
 }
 
 DroidWidget::~DroidWidget()

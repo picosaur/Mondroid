@@ -46,6 +46,7 @@ set(divvydroid_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/scrollarea.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/droidwidget.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/toolbar.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/mainwindow.ui
 	CACHE INTERNAL EXPORTEDVARIABLE

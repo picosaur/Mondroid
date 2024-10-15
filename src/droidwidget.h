@@ -8,6 +8,8 @@
 
 class DroidWidget : public QWidget
 {
+    Q_OBJECT
+
 public:
     DroidWidget(QWidget *parent = nullptr);
     ~DroidWidget();

@@ -28,8 +28,11 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
-    m_scrollArea = new ScrollArea(this);
+    m_scrollArea = new ScrollArea();
+    m_toolbar = new Toolbar();
+
     setCentralWidget(m_scrollArea);
+    addToolBar(m_toolbar);
 }
 
 MainWindow::~MainWindow()

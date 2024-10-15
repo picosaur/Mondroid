@@ -34,10 +34,14 @@ class VideoThread : public QThread
 	Q_OBJECT
 
 public:
-	VideoThread(QObject *parent = nullptr);
-	~VideoThread();
+    enum VideMode { FastH264, NativeJpg, NativePng, NativeRaw };
 
+    VideoThread(QObject *parent = nullptr);
+    ~VideoThread();
+
+    void setVideoMode(VideMode mode);
     void setImageSize(int w, int h);
+    void setNativeInterval(unsigned long ms);
 
 signals:
     void imageReady(const QImage &image);
@@ -53,9 +57,14 @@ private:
 	bool h264Process();
 	void h264Exit();
 
-    AdbClient *m_adb{};
+    void nativeProcess();
+
+    VideMode m_videoMode{FastH264};
     int m_imageWidth{426};
     int m_imageHeight{240};
+    unsigned long m_nativeInterval{10};
+
+    AdbClient *m_adb{};
 
     AVFormatContext *m_avFormat{};
     AVStream *m_avStream{};
