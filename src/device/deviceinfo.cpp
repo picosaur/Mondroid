@@ -55,17 +55,17 @@ bool DeviceInfo::waitForDevice()
 DeviceList DeviceInfo::deviceList()
 {
 	AdbClient adb;
-	if(!adb.send("host:devices-l"))
-		return DeviceList();
+    if (!adb.send("host:devices-l")) {
+        return DeviceList();
+    }
 
-	DeviceList devList;
-
-	QList<QByteArray> devices = adb.readResponse().split('\n');
-	for(const QByteArray &dev : devices) {
-		QByteArray info = dev.simplified();
-        if (info.size() < 2)
+    DeviceList devList;
+    QList<QByteArray> devices = adb.readResponse().split('\n');
+    for (const QByteArray &dev : devices) {
+        QByteArray info = dev.simplified();
+        if (info.size() < 5) {
             continue;
-
+        }
         const int i = info.indexOf(' ');
         devList.insert(info.left(i), info.mid(i + 1));
     }

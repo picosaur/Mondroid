@@ -16,8 +16,6 @@ public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
-	void init();
-
 private:
     Ui::MainWindow *ui{};
     Toolbar *m_toolbar{};

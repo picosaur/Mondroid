@@ -71,7 +71,10 @@ bool VideoThread::h264Connect()
     }
 
     QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 --size ");
-    cmd.append(QString::number(720)).append('x').append(QString::number(1280)).append(" -");
+    cmd.append(QString::number(m_imageWidth).toUtf8())
+        .append('x')
+        .append(QString::number(m_imageHeight).toUtf8())
+        .append(" -");
 
     if (!m_adb->send(cmd)) {
         qWarning() << "FRAMEBUFFER error executing" << cmd.mid(6);

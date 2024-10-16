@@ -10,7 +10,8 @@ class InitThread : public QThread
 
 public:
 	InitThread(QObject *parent = nullptr);
-	~InitThread();
+    InitThread(const QString &filter, QObject *parent = nullptr);
+    ~InitThread();
 
 signals:
 	void deviceConnected();
@@ -18,6 +19,9 @@ signals:
 
 protected:
     void run();
+
+private:
+    QString m_filter{};
 };
 
 #endif // INITTHREAD_H

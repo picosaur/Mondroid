@@ -1,11 +1,12 @@
 #ifndef DROIDWIDGET_H
 #define DROIDWIDGET_H
-#include <QLabel>
-#include <QVBoxLayout>
 #include <QWidget>
-#include "device/videothread.h"
-#include "initthread.h"
-#include <qscrollarea.h>
+class QLabel;
+class QVBoxLayout;
+class QScrollArea;
+class QLineEdit;
+class InitThread;
+class VideoThread;
 
 class DroidWidget : public QWidget
 {
@@ -15,7 +16,8 @@ public:
     DroidWidget(QWidget *parent = nullptr);
     ~DroidWidget();
 
-    void init();
+    void start();
+    void stop();
 
 public slots:
     void onDeviceReady();
@@ -26,6 +28,8 @@ private:
     QVBoxLayout *m_layout{};
     QScrollArea *m_area{};
     QLabel *m_screen{};
+    QLineEdit *m_hostInp{};
+
     InitThread *m_initThread{};
     VideoThread *m_videoThread{};
 };

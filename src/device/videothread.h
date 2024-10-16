@@ -60,9 +60,9 @@ private:
     void nativeLoop();
 
     VideMode m_videoMode{FastH264};
-    int m_imageWidth{640};
-    int m_imageHeight{360};
-    unsigned long m_nativeInterval{10};
+    int m_imageWidth{426};
+    int m_imageHeight{240};
+    unsigned long m_nativeInterval{100};
 
     AdbClient *m_adb{};
     AVFormatContext *m_avFormat{};

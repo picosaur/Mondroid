@@ -227,7 +227,6 @@ bool AdbClient::fetchScreenRawInit()
 	bool res = false;
 	switch(m_fbInfo.version) {
 	case 16: // version 0
-		qDebug() << "FRAMEBUFFER v0";
 		res = read(&m_fbInfo.v0, sizeof(m_fbInfo.v0));
 		if(!write("0", 1)) {
 			qDebug() << "FRAMEBUFFER error writing v0 request";
@@ -235,16 +234,13 @@ bool AdbClient::fetchScreenRawInit()
 		}
 		break;
 	case 1:
-		qDebug() << "FRAMEBUFFER v1";
 		res = read(&m_fbInfo.v1, sizeof(m_fbInfo.v1));
 		Q_ASSERT(m_fbInfo.v1.size == m_fbInfo.v1.width * m_fbInfo.v1.height * m_fbInfo.v1.bpp / 8);
 		break;
 	case 2:
-		qDebug() << "FRAMEBUFFER v2";
 		res = read(&m_fbInfo.v2, sizeof(m_fbInfo.v2));
 		break;
 	default:
-		qDebug() << "FRAMEBUFFER version unsupported";
 		res = false;
 		break;
 	}
@@ -252,8 +248,6 @@ bool AdbClient::fetchScreenRawInit()
 		qDebug() << "FRAMEBUFFER error reading framebuffer info";
 		return false;
 	}
-
-	qDebug() << "FRAMEBUFFER " << m_fbInfo.width() << 'x' << m_fbInfo.height() << 'x' << m_fbInfo.bpp() << ' ' << m_fbInfo.size() << "bytes";
 
 	return true;
 }
@@ -316,10 +310,11 @@ QImage AdbClient::fetchScreenJpeg()
 	QElapsedTimer timer;
 	timer.start();
 
-	if(!connectToDevice())
-		return QImage();
+    if (!connectToDevice()) {
+        return QImage();
+    }
 
-	if(!send("shell:stty raw; screencap -j")) {
+    if(!send("shell:stty raw; screencap -j")) {
 		qWarning() << "FRAMEBUFFER error executing JPEG screencap";
 		return QImage();
 	}

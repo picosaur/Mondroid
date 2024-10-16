@@ -7,8 +7,12 @@
 InitThread::InitThread(QObject *parent)
 	: QThread(parent)
 {
-
 }
+
+InitThread::InitThread(const QString &filter, QObject *parent)
+    : QThread(parent)
+    , m_filter{filter}
+{}
 
 InitThread::~InitThread()
 {
@@ -18,19 +22,14 @@ InitThread::~InitThread()
 
 void InitThread::run()
 {
-    // start adb server and wait for device
-    //if(!DeviceInfo::waitForDevice()) {
-    //	QApplication::quit();
-    //	return;
-    //}
-
     DeviceList devices = DeviceInfo::deviceList();
-    DeviceInfo::connect(devices.lastKey());
-    //DeviceInfo::connect();
-
-    emit deviceConnected();
-
-    DeviceInfo::initInput();
-
-    emit inputReady();
+    for (auto it{devices.begin()}; it != devices.end(); ++it) {
+        if (it.key().contains(m_filter.toUtf8())) {
+            DeviceInfo::connect(it.key());
+            emit deviceConnected();
+            DeviceInfo::initInput();
+            emit inputReady();
+            return;
+        }
+    }
 }

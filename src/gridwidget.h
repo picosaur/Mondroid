@@ -6,11 +6,14 @@
 
 class GridWidget : public QWidget
 {
+    Q_OBJECT
+
 public:
     explicit GridWidget(QWidget *parent = nullptr);
     ~GridWidget();
 
-    void init();
+    void start();
+    void stop();
 
 private:
     QGridLayout *m_gridLayout{};
