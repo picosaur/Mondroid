@@ -39,6 +39,7 @@ public:
     VideoThread(QObject *parent = nullptr);
     ~VideoThread();
 
+    void setDeviceId(const QString &deviceId);
     void setVideoMode(VideMode mode);
     void setImageSize(int w, int h);
     void setNativeInterval(unsigned long ms);
@@ -59,6 +60,7 @@ private:
 
     void nativeLoop();
 
+    QString m_deviceId{};
     VideMode m_videoMode{FastH264};
     int m_imageWidth{426};
     int m_imageHeight{240};

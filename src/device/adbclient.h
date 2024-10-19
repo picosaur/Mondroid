@@ -19,8 +19,9 @@
 #ifndef ADBCLIENT_H
 #define ADBCLIENT_H
 
-#include <QTcpSocket>
 #include <QImage>
+#include <QTcpSocket>
+#include "fbinfo.h"
 
 struct AdbEvent {
 	AdbEvent(quint16 t, quint16 c = 0, qint32 v = 0)
@@ -29,12 +30,22 @@ struct AdbEvent {
 		  code(c),
 		  value(v)
 	{}
-	quint64 time;
-	quint16 type;
-	quint16 code;
-	qint32 value;
+    quint64 time{};
+    quint16 type{};
+    quint16 code{};
+    qint32 value{};
 };
 typedef QList<AdbEvent> AdbEventList;
+
+struct AdbDeviceInfo
+{
+    QString deviceId{};
+    QString androidVer{};
+    bool isArch64{};
+    int screenRotation{};
+    int screenWidth{};
+    int screenHeight{};
+};
 
 class AdbClient : public QObject
 {
@@ -42,103 +53,59 @@ class AdbClient : public QObject
 
 public:
 	explicit AdbClient(QObject *parent = nullptr);
-	virtual ~AdbClient();
+    ~AdbClient();
 
-	void connectToHost();
-	bool connectToDevice();
-	bool forwardTcpPort(int local, int remote);
-	inline void close() { m_sock.close(); }
-	inline bool waitForDisconnected(int msecs = -1) { return m_sock.waitForDisconnected(msecs); }
-	inline bool waitForReadyRead(int msecs = -1) { return m_sock.waitForReadyRead(msecs); }
-	inline QTcpSocket::SocketError error() { return m_sock.error(); }
-	inline qint64 bytesAvailable() { return m_sock.bytesAvailable(); }
-	inline qint64 isConnected() { return m_sock.state() != QTcpSocket::UnconnectedState; }
+    void setDevice(const QString &deviceId);
+    AdbDeviceInfo getDeviceInfo();
+    bool devIsArch64();
+    QString devAndroidVer();
+    QPair<int, int> devScreenResolution();
+    qint32 devScreenRotation();
+    bool devIsScreenAwake();
+    QList<QString> getDeviceList();
 
-	bool read(void *data, qint64 max);
-	bool write(const void *data, qint64 max);
-	bool write(const QByteArray &data) { return write(data.constData(), data.size()); }
+    void connectToHost();
+    bool connectToDevice();
+    bool forwardTcpPort(int local, int remote);
 
-	bool send(QByteArray command);
+    void close();
+    bool waitForDisconnected(int msecs = -1);
+    bool waitForReadyRead(int msecs = -1);
+    QTcpSocket::SocketError error();
+    qint64 bytesAvailable();
+    qint64 isConnected();
 
-	bool readStatus();
-	QByteArray readResponse();
-	QByteArray readAll();
-	QByteArray readLine();
-	QByteArray readAvailable();
+    bool read(void *data, qint64 max);
+    bool write(const void *data, qint64 max);
+    bool write(const QByteArray &data);
 
-	QImage fetchScreenRaw();
-	QImage fetchScreenPng();
-	QImage fetchScreenJpeg();
+    bool send(QByteArray command);
 
-	static QByteArray shell(const char *cmd);
-	bool sendEvents(AdbEventList events);
-	static bool sendEvents(int deviceIndex, AdbEventList events);
+    bool readStatus();
+    QByteArray readResponse();
+    QByteArray readAll();
+    QByteArray readLine();
+    QByteArray readAvailable();
 
-protected:
-	bool fetchScreenRawInit();
+    bool fetchScreenRawInit();
+    QImage fetchScreenRaw();
+    QImage fetchScreenPng();
+    QImage fetchScreenJpeg();
+
+    QByteArray shell(const char *cmd);
+    bool sendEvents(AdbEventList events);
+    static bool sendEvents(int deviceIndex, AdbEventList events);
 
 signals:
 	void stateChanged(QAbstractSocket::SocketState);
-	void onError(QAbstractSocket::SocketError);
-	void readyRead();
-	void bytesWritten(qint64 bytes);
+    void errorOcurred(QAbstractSocket::SocketError);
+    void readyRead();
+    void bytesWritten(qint64 bytes);
 
 private:
-	QTcpSocket m_sock;
-
-#define FB_VAR(VAR) (version == 16 ? v0.VAR : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
-#define FB_VAR_1(VAR, DEF) (version == 16 ? DEF : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
-	struct FBInfo {
-		quint32 version;
-		union {
-			struct {
-				quint32 size;
-				quint32 width;
-				quint32 height;
-			} v0; // version=16 here which is actually 16bpp
-			struct {
-				quint32 bpp;
-				quint32 size;
-				quint32 width;
-				quint32 height;
-				quint32 red_offset;
-				quint32 red_length;
-				quint32 blue_offset;
-				quint32 blue_length;
-				quint32 green_offset;
-				quint32 green_length;
-				quint32 alpha_offset;
-				quint32 alpha_length;
-			} v1;
-			struct {
-				quint32 bpp;
-				quint32 colorSpace;
-				quint32 size;
-				quint32 width;
-				quint32 height;
-				quint32 red_offset;
-				quint32 red_length;
-				quint32 blue_offset;
-				quint32 blue_length;
-				quint32 green_offset;
-				quint32 green_length;
-				quint32 alpha_offset;
-				quint32 alpha_length;
-			} v2;
-		};
-		quint32 width() { return FB_VAR(width); }
-		quint32 height() { return FB_VAR(height); }
-		quint32 size() { return FB_VAR(size); }
-		quint32 bpp() { return FB_VAR_1(bpp, 16); }
-		QImage::Format format() {
-			if(version == 16)
-				return QImage::Format_RGB16;
-//			if(version == 1 && v1.bpp == 24)
-//				return QImage::Format_RGB888;
-//			if(version <= 2 && v1.bpp == 32) // TODO: consider offsets and lengths to figure the format
-				return QImage::Format_RGB32;
-		}
-	} m_fbInfo;
+    QString m_deviceId{};
+    QTcpSocket m_sock{};
+    FBInfo m_fbInfo{};
 };
 
 #endif // ADBCLIENT_H

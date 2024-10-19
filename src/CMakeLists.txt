@@ -40,9 +40,8 @@ set(divvydroid_LIBS
 
 set(divvydroid_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/device/adbclient.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/device/deviceinfo.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/device/videothread.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/initthread.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/device/fbinfo.h
 	${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/gridwidget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/droidwidget.cpp

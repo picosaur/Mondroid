@@ -17,7 +17,6 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "videothread.h"
-#include "deviceinfo.h"
 #include <QImage>
 #include <cstdint>
 
@@ -39,6 +38,11 @@ VideoThread::~VideoThread()
 {
 	requestInterruption();
 	wait();
+}
+
+void VideoThread::setDeviceId(const QString &deviceId)
+{
+    m_deviceId = deviceId;
 }
 
 void VideoThread::setImageSize(int w, int h)
@@ -317,7 +321,7 @@ void VideoThread::nativeLoop()
 {
     while (!isInterruptionRequested()) {
         QImage img;
-        if (aDev->isScreenAwake()) {
+        if (m_adb->devIsScreenAwake()) {
             if (m_videoMode == NativeJpg) {
                 img = m_adb->fetchScreenJpeg();
             } else if (m_videoMode == NativeRaw) {
@@ -331,14 +335,20 @@ void VideoThread::nativeLoop()
             img = QImage(m_imageWidth, m_imageHeight, QImage::Format_RGB888);
             img.fill(Qt::black);
         }
-        emit imageReady(img.scaledToWidth(m_imageWidth, Qt::SmoothTransformation));
-        msleep(m_nativeInterval);
+        if (!img.isNull()) {
+            emit imageReady(img.scaledToWidth(m_imageWidth, Qt::SmoothTransformation));
+        } else {
+            qDebug() << "NULL";
+        }
+        msleep(500);
     }
 }
 
 void VideoThread::run()
 {
     m_adb = new AdbClient();
+    m_adb->setDevice(m_deviceId);
+
     if (m_videoMode == FastH264) {
         h264Loop();
     } else {

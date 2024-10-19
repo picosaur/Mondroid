@@ -3,8 +3,10 @@
 #include <QWidget>
 class QLabel;
 class QVBoxLayout;
+class QHBoxLayout;
 class QScrollArea;
 class QLineEdit;
+class QPushButton;
 class InitThread;
 class VideoThread;
 
@@ -16,19 +18,24 @@ public:
     DroidWidget(QWidget *parent = nullptr);
     ~DroidWidget();
 
+    void setDeviceId(const QString &deviceId);
+
     void start();
     void stop();
 
-public slots:
-    void onDeviceReady();
-    void onInputReady();
+private slots:
     void updateScreen(const QImage &image);
+    void onABtnClicked();
+    void onBBtnClicked();
+    void onCBtnClicked();
 
 private:
-    QVBoxLayout *m_layout{};
+    QVBoxLayout *m_mainLayout{};
+    QHBoxLayout *m_toolLayout{};
     QScrollArea *m_area{};
     QLabel *m_screen{};
-    QLineEdit *m_hostInp{};
+    QLineEdit *m_deviceInp{};
+    QPushButton *m_aBtn{}, *m_bBtn{}, *m_cBtn{};
 
     InitThread *m_initThread{};
     VideoThread *m_videoThread{};
