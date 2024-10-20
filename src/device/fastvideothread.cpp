@@ -65,14 +65,14 @@ void FastVideoThread::loop()
         int ret = av_read_frame(m_avFormat, &pkt);
         bool drainDecoder = ret == AVERROR(EAGAIN) || ret == AVERROR_EOF;
         if (ret < 0 && !drainDecoder) {
-            qDebug() << "FRAMEBUFFER av_read_frame() failed:" << h264Error(ret);
+            qDebug() << "FRAMEBUFFER av_read_frame() failed:" << streamError(ret);
             break;
         }
         if (pkt.stream_index == streamIndex || drainDecoder) {
             ret = avcodec_send_packet(m_codecCtx, &pkt);
             if (ret < 0) {
                 if (ret != AVERROR(EAGAIN)) {
-                    qDebug() << "FRAMEBUFFER avcodec_send_packet() failed:" << h264Error(ret);
+                    qDebug() << "FRAMEBUFFER avcodec_send_packet() failed:" << streamError(ret);
                     break;
                 }
                 continue;
@@ -84,13 +84,9 @@ void FastVideoThread::loop()
                     break;
                 }
                 if (ret < 0) {
-                    qDebug() << "FRAMEBUFFER avcodec_receive_frame() failed:" << h264Error(ret);
+                    qDebug() << "FRAMEBUFFER avcodec_receive_frame() failed:" << streamError(ret);
                     break;
                 }
-
-                auto ls1{m_frame->linesize};
-                auto ls2{m_rgbFrame->linesize};
-                auto codec_ctx{*m_codecCtx};
 
                 sws_scale(m_swsContext,
                           m_frame->data,
@@ -100,9 +96,11 @@ void FastVideoThread::loop()
                           m_rgbFrame->data,
                           m_rgbFrame->linesize);
 
-                QImage img(m_codecCtx->width, m_codecCtx->height, QImage::Format_RGB888);
+                QImage img(getScaledSize(m_codecCtx->width),
+                           getScaledSize(m_codecCtx->height),
+                           QImage::Format_RGB888);
                 const uint8_t *data = m_rgbFrame->data[0];
-                for (int y = 0; y < m_codecCtx->height; ++y) {
+                for (int y = 0; y < img.height(); ++y) {
                     memcpy(img.scanLine(y), data, img.bytesPerLine());
                     data += m_rgbFrame->linesize[0];
                 }
@@ -167,14 +165,14 @@ bool FastVideoThread::initStream()
 
     int ret{};
     if ((ret = avformat_open_input(&m_avFormat, nullptr, nullptr, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't open input:" << h264Error(ret);
+        qDebug() << "FRAMEBUFFER can't open input:" << streamError(ret);
         return false;
     }
 
     m_avFormat->probesize = 32;
     //	m_avFormat->max_analyze_duration = 0;
     if ((ret = avformat_find_stream_info(m_avFormat, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't find stream information:" << h264Error(ret);
+        qDebug() << "FRAMEBUFFER can't find stream information:" << streamError(ret);
         return false;
     }
     av_dump_format(m_avFormat, 0, "", 0);
@@ -198,8 +196,8 @@ bool FastVideoThread::initFrames()
 
     av_image_alloc(m_rgbFrame->data,
                    m_rgbFrame->linesize,
-                   m_codecCtx->width,
-                   m_codecCtx->height,
+                   getScaledSize(m_codecCtx->width),
+                   getScaledSize(m_codecCtx->height),
                    AV_PIX_FMT_RGB24,
                    32);
 
@@ -207,8 +205,8 @@ bool FastVideoThread::initFrames()
     m_swsContext = sws_getContext(m_codecCtx->width,
                                   m_codecCtx->height,
                                   m_codecCtx->pix_fmt,
-                                  m_codecCtx->width,
-                                  m_codecCtx->height,
+                                  getScaledSize(m_codecCtx->width),
+                                  getScaledSize(m_codecCtx->height),
                                   AV_PIX_FMT_RGB24,
                                   SWS_BICUBIC,
                                   nullptr,
@@ -247,7 +245,7 @@ int FastVideoThread::getStreamIndex()
             qDebug() << "FRAMEBUFFER failed to copy decoder parameters to input "
                         "decoder context "
                         "for stream"
-                     << i << h264Error(ret);
+                     << i << streamError(ret);
             avcodec_free_context(&m_codecCtx);
             continue;
         }
@@ -257,7 +255,7 @@ int FastVideoThread::getStreamIndex()
         }
         ret = avcodec_open2(m_codecCtx, dec, nullptr);
         if (ret < 0) {
-            qDebug() << "FRAMEBUFFER failed to open decoder for stream" << i << h264Error(ret);
+            qDebug() << "FRAMEBUFFER failed to open decoder for stream" << i << streamError(ret);
             avcodec_free_context(&m_codecCtx);
             continue;
         }
@@ -287,7 +285,7 @@ void FastVideoThread::exitStream()
     }
 }
 
-const char *FastVideoThread::h264Error(int errorCode)
+const char *FastVideoThread::streamError(int errorCode)
 {
     static char errorText[1024];
     av_strerror(errorCode, errorText, sizeof(errorText));

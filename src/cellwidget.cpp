@@ -75,7 +75,7 @@ void CellWidget::start()
         m_videoThread = videoThread;
     } else {
         auto videoThread = new VideoThread();
-        videoThread->setImageFormat(VideoThread::ImageRaw);
+        videoThread->setImageFormat(VideoThread::ImagePng);
         m_videoThread = videoThread;
     }
 

@@ -1,12 +1,12 @@
-#ifndef FBINFO_H
-#define FBINFO_H
+#ifndef FRAMEBUFINFO_H
+#define FRAMEBUFINFO_H
 #include <QImage>
 #include <QtGlobal>
 
 #define FB_VAR(VAR) (version == 16 ? v0.VAR : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
 #define FB_VAR_1(VAR, DEF) (version == 16 ? DEF : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
 
-struct FBInfo
+struct FramebufInfo
 {
     quint32 version;
     union {
@@ -49,10 +49,10 @@ struct FBInfo
         } v2;
     };
 
-    quint32 width() { return FB_VAR(width); }
-    quint32 height() { return FB_VAR(height); }
-    quint32 size() { return FB_VAR(size); }
-    quint32 bpp() { return FB_VAR_1(bpp, 16); }
+    quint32 width() const { return FB_VAR(width); }
+    quint32 height() const { return FB_VAR(height); }
+    quint32 size() const { return FB_VAR(size); }
+    quint32 bpp() const { return FB_VAR_1(bpp, 16); }
 
     QImage::Format format()
     {
@@ -63,6 +63,8 @@ struct FBInfo
         //			if(version <= 2 && v1.bpp == 32) // TODO: consider offsets and lengths to figure the format
         return QImage::Format_RGB32;
     }
+
+    bool valid;
 };
 
-#endif // FBINFO_H
+#endif // FRAMEBUFINFO_H

@@ -17,15 +17,7 @@ void VideoThread::run()
     m_adb = new AdbClient();
     m_adb->setHost(m_host, m_port);
     m_adb->setDevice(m_deviceId);
-
-    auto screenSize = m_adb->devPhysicalScreenSize();
-    auto ovScreenSize = m_adb->devOverrideScreenSize();
-    m_screenWidth = screenSize.first;
-    m_screenHeight = screenSize.second;
-    m_ovScreenWidth = ovScreenSize.first;
-    m_ovScreenHeight = ovScreenSize.second;
-    m_imageWidth = int(double(m_ovScreenWidth) * m_imageScale);
-    m_imageHeight = int(double(m_ovScreenHeight) * m_imageScale);
+    m_devInfo = m_adb->getDeviceInfo();
 
     loop();
 
@@ -41,10 +33,10 @@ void VideoThread::loop()
     while (!isInterruptionRequested()) {
         QImage img;
         if (m_adb->devIsScreenAwake()) {
-            if (m_imageFormat == ImageJpg) {
-                img = m_adb->fetchScreenJpeg();
-            } else if (m_imageFormat == ImageRaw) {
+            if (m_imageFormat == ImageRaw) {
                 img = m_adb->fetchScreenRaw();
+            } else if (m_imageFormat == ImageJpg) {
+                img = m_adb->fetchScreenJpeg();
             } else if (m_imageFormat == ImagePng) {
                 img = m_adb->fetchScreenPng();
             } else {
@@ -55,7 +47,7 @@ void VideoThread::loop()
             img.fill(Qt::black);
         }
         if (!img.isNull()) {
-            emit imageReady(img.scaledToWidth(m_imageWidth, Qt::FastTransformation));
+            emit imageReady(img.scaledToWidth(getScaledSize(img.width()), Qt::FastTransformation));
         }
         msleep(m_imageRateMs);
     }
@@ -92,37 +84,17 @@ void VideoThread::setImageRate(double fps)
     m_imageRateMs = 1000 / fps;
 }
 
+int VideoThread::getScaledSize(int value) const
+{
+    return int(double(value) * m_imageScale);
+}
+
 AdbClient *VideoThread::adb() const
 {
     return m_adb;
 }
 
-int VideoThread::screenWidth() const
+const DeviceInfo &VideoThread::devInfo() const
 {
-    return m_screenWidth;
-}
-
-int VideoThread::screenHeight() const
-{
-    return m_screenHeight;
-}
-
-int VideoThread::ovScreenWidth() const
-{
-    return m_ovScreenWidth;
-}
-
-int VideoThread::ovScreenHeight() const
-{
-    return m_ovScreenHeight;
-}
-
-int VideoThread::imageWidth() const
-{
-    return m_imageWidth;
-}
-
-int VideoThread::imageHeight() const
-{
-    return m_imageHeight;
+    return m_devInfo;
 }

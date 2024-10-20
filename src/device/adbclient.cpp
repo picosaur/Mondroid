@@ -17,9 +17,10 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "adbclient.h"
-#include <QElapsedTimer>
-#include <QPixmap>
 #include <QDebug>
+#include <QElapsedTimer>
+#include <QHostAddress>
+#include <QPixmap>
 
 AdbClient::AdbClient(QObject *parent)
 	: QObject(parent)
@@ -46,17 +47,69 @@ void AdbClient::setDevice(const QString &deviceId)
     m_deviceId = deviceId;
 }
 
-AdbDeviceInfo AdbClient::getDeviceInfo()
+DeviceInfo AdbClient::getDeviceInfo()
 {
-    AdbDeviceInfo info;
+    DeviceInfo info;
     info.deviceId = m_deviceId;
     info.androidVer = devAndroidVer();
     info.isArch64 = devIsArch64();
     info.screenRotation = devScreenRotation();
-    const auto size{devOverrideScreenSize()};
-    info.screenWidth = size.first;
-    info.screenHeight = size.second;
+
+    const auto ovSize{devOverrideScreenSize()};
+    info.ovScreenWidth = ovSize.first;
+    info.ovScreenHeight = ovSize.second;
+
+    const auto phSize{devPhysicalScreenSize()};
+    info.phScreenWidth = phSize.first;
+    info.phScreenHeight = phSize.second;
+
     return info;
+}
+
+FramebufInfo AdbClient::getFramebufInfo()
+{
+    FramebufInfo fbInfo{};
+
+    if (!connectToDevice()) {
+        return {};
+    }
+
+    if (!send("framebuffer:")) {
+        qWarning() << "FRAMEBUFFER unable to connect to framebuffer";
+        return {};
+    }
+    if (!read(&fbInfo.version, sizeof(fbInfo.version))) {
+        qDebug() << "FRAMEBUFFER error reading framebuffer version";
+        return {};
+    }
+
+    bool res{};
+    switch (fbInfo.version) {
+    case 16: // version 0
+        res = read(&fbInfo.v0, sizeof(fbInfo.v0));
+        if (!write("0", 1)) {
+            qDebug() << "FRAMEBUFFER error writing v0 request";
+            return {};
+        }
+        break;
+    case 1:
+        res = read(&fbInfo.v1, sizeof(fbInfo.v1));
+        Q_ASSERT(fbInfo.v1.size == fbInfo.v1.width * fbInfo.v1.height * fbInfo.v1.bpp / 8);
+        break;
+    case 2:
+        res = read(&fbInfo.v2, sizeof(fbInfo.v2));
+        break;
+    default:
+        res = {};
+        break;
+    }
+    if (!res) {
+        qDebug() << "FRAMEBUFFER error reading framebuffer info";
+        return {};
+    }
+
+    fbInfo.valid = res;
+    return fbInfo;
 }
 
 bool AdbClient::devIsArch64()
@@ -168,63 +221,24 @@ bool AdbClient::forwardTcpPort(int local, int remote)
     return true;
 }
 
-bool AdbClient::fetchScreenRawInit()
-{
-    if (!connectToDevice())
-        return false;
-
-    if (!send("framebuffer:")) {
-        qWarning() << "FRAMEBUFFER unable to connect to framebuffer";
-        return false;
-    }
-    if (!read(&m_fbInfo.version, sizeof(m_fbInfo.version))) {
-        qDebug() << "FRAMEBUFFER error reading framebuffer version";
-        return false;
-    }
-
-    bool res = false;
-    switch (m_fbInfo.version) {
-    case 16: // version 0
-        res = read(&m_fbInfo.v0, sizeof(m_fbInfo.v0));
-        if (!write("0", 1)) {
-            qDebug() << "FRAMEBUFFER error writing v0 request";
-            return false;
-        }
-        break;
-    case 1:
-        res = read(&m_fbInfo.v1, sizeof(m_fbInfo.v1));
-        Q_ASSERT(m_fbInfo.v1.size == m_fbInfo.v1.width * m_fbInfo.v1.height * m_fbInfo.v1.bpp / 8);
-        break;
-    case 2:
-        res = read(&m_fbInfo.v2, sizeof(m_fbInfo.v2));
-        break;
-    default:
-        res = false;
-        break;
-    }
-    if (!res) {
-        qDebug() << "FRAMEBUFFER error reading framebuffer info";
-        return false;
-    }
-
-    return true;
-}
-
 QImage AdbClient::fetchScreenRaw()
 {
-    if (!fetchScreenRawInit()) {
+    FramebufInfo fbInfo{};
+    fbInfo = getFramebufInfo();
+
+    if (!fbInfo.valid) {
         return QImage();
     }
 
-    const int bytesPerLine = m_fbInfo.width() * m_fbInfo.bpp() / 8;
-    QImage img(m_fbInfo.width(), m_fbInfo.height(), m_fbInfo.format());
+    const int bytesPerLine = fbInfo.width() * fbInfo.bpp() / 8;
+    QImage img(fbInfo.width(), fbInfo.height(), fbInfo.format());
     for (int y = 0, h = img.height(); y < h; y++) {
         if (!read(img.scanLine(y), bytesPerLine)) {
             qDebug() << "FRAMEBUFFER error reading framebuffer frame";
             return img;
         }
     }
-    if (m_fbInfo.format() == QImage::Format_RGB32) {
+    if (fbInfo.format() == QImage::Format_RGB32) {
         // swap R and B
         for (int y = 0, h = img.height(); y < h; y++) {
             uchar *s = img.scanLine(y);
@@ -236,8 +250,7 @@ QImage AdbClient::fetchScreenRaw()
             }
         }
     }
-    m_sock.readAll();
-
+    readAll();
     return img;
 }
 
@@ -331,7 +344,7 @@ bool AdbClient::read(void *data, qint64 max)
     while(max > done) {
         const int n = m_sock.read((char*)data + done, max - done);
 		if(n < 0) {
-			qDebug() << __FUNCTION__ << "failed";
+            qDebug() << __FUNCTION__ << "failed";
             return false;
 		}
         if(n == 0) {
@@ -429,13 +442,7 @@ QByteArray AdbClient::readResponse()
 
 bool AdbClient::send(QByteArray command)
 {
-	if(m_sock.state() != QTcpSocket::ConnectedState) {
-		connectToHost();
-		if(!m_sock.waitForConnected()) {
-			qWarning() << __FUNCTION__ << "failed: error connecting to adb server.";
-			return false;
-		}
-	}
+    connectToHost();
     write(QString("%1").arg(command.size(), 4, 16, QChar('0')).toLatin1());
     write(command);
     return readStatus();
@@ -443,9 +450,22 @@ bool AdbClient::send(QByteArray command)
 
 void AdbClient::connectToHost()
 {
-	//m_sock.setSocketOption(QTcpSocket::LowDelayOption, 1); // TCP_NODELAY
-	m_sock.setSocketOption(QTcpSocket::KeepAliveOption, 1); // SO_KEEPALIVE
+    auto sockHost = m_sock.property("m_host").toString();
+    auto sockPort = m_sock.property("m_port").toInt();
+
+    if (m_sock.state() == QTcpSocket::ConnectedState && sockHost == m_host && sockPort == m_port) {
+        return;
+    }
+
+    //m_sock.setSocketOption(QTcpSocket::LowDelayOption, 1); // TCP_NODELAY
+    m_sock.setSocketOption(QTcpSocket::KeepAliveOption, 1); // SO_KEEPALIVE
     m_sock.connectToHost(m_host, m_port, QIODevice::ReadWrite);
+    if (!m_sock.waitForConnected()) {
+        qWarning() << __FUNCTION__ << "failed: error connecting to adb server.";
+    } else {
+        m_sock.setProperty("m_host", m_host);
+        m_sock.setProperty("m_port", m_port);
+    }
 }
 
 void AdbClient::disconnectFromHost()

@@ -25,7 +25,7 @@ private:
     int getStreamIndex();
     bool initFrames();
     void exitStream();
-    const char *h264Error(int errorCode);
+    const char *streamError(int errorCode);
 
     bool connectDevice();
 

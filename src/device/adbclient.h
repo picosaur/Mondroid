@@ -23,6 +23,18 @@
 #include <QTcpSocket>
 #include "fbinfo.h"
 
+struct DeviceInfo
+{
+    QString deviceId{};
+    QString androidVer{};
+    bool isArch64{};
+    int screenRotation{};
+    int phScreenWidth{};
+    int phScreenHeight{};
+    int ovScreenWidth{};
+    int ovScreenHeight{};
+};
+
 struct AdbEvent {
 	AdbEvent(quint16 t, quint16 c = 0, qint32 v = 0)
 		: time(0),
@@ -37,16 +49,6 @@ struct AdbEvent {
 };
 typedef QList<AdbEvent> AdbEventList;
 
-struct AdbDeviceInfo
-{
-    QString deviceId{};
-    QString androidVer{};
-    bool isArch64{};
-    int screenRotation{};
-    int screenWidth{};
-    int screenHeight{};
-};
-
 class AdbClient : public QObject
 {
 	Q_OBJECT
@@ -58,7 +60,9 @@ public:
     void setHost(const QString &host, int port);
     void setDevice(const QString &deviceId);
 
-    AdbDeviceInfo getDeviceInfo();
+    DeviceInfo getDeviceInfo();
+    FramebufInfo getFramebufInfo();
+
     bool devIsArch64();
     QString devAndroidVer();
     QPair<int, int> devStableScreenSize();
@@ -70,7 +74,6 @@ public:
 
     bool connectToDevice();
     bool forwardTcpPort(int local, int remote);
-    bool fetchScreenRawInit();
     QImage fetchScreenRaw();
     QImage fetchScreenPng();
     QImage fetchScreenJpeg();
@@ -111,7 +114,6 @@ private:
     int m_port{5037};
     QString m_deviceId{};
     QTcpSocket m_sock{};
-    FBInfo m_fbInfo{};
 };
 
 #endif // ADBCLIENT_H

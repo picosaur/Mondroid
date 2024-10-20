@@ -1,8 +1,10 @@
 #ifndef VIDEOTHREAD_H
 #define VIDEOTHREAD_H
 #include <QThread>
+#include "device/adbclient.h"
 
 class AdbClient;
+class AdbDeviceInfo;
 
 class VideoThread : public QThread
 {
@@ -21,17 +23,14 @@ public:
     void setImageScalePercent(double p);
     void setImageRate(double fps);
 
+    int getScaledSize(int value) const;
+
 signals:
     void imageReady(const QImage &image);
 
 protected:
     AdbClient *adb() const;
-    int screenWidth() const;
-    int screenHeight() const;
-    int ovScreenWidth() const;
-    int ovScreenHeight() const;
-    int imageWidth() const;
-    int imageHeight() const;
+    const DeviceInfo &devInfo() const;
 
 private:
     virtual void run();
@@ -45,12 +44,7 @@ private:
     unsigned long m_imageRateMs{100};
 
     AdbClient *m_adb{};
-    int m_screenWidth{};
-    int m_screenHeight{};
-    int m_ovScreenWidth{};
-    int m_ovScreenHeight{};
-    int m_imageWidth{};
-    int m_imageHeight{};
+    DeviceInfo m_devInfo{};
 };
 
 #endif // VIDEOTHREAD_H
