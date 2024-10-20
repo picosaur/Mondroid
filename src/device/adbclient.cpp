@@ -35,6 +35,12 @@ AdbClient::~AdbClient()
 	m_sock.close();
 }
 
+void AdbClient::setHost(const QString &host, int port)
+{
+    m_host = host;
+    m_port = port;
+}
+
 void AdbClient::setDevice(const QString &deviceId)
 {
     m_deviceId = deviceId;
@@ -47,9 +53,9 @@ AdbDeviceInfo AdbClient::getDeviceInfo()
     info.androidVer = devAndroidVer();
     info.isArch64 = devIsArch64();
     info.screenRotation = devScreenRotation();
-    const auto res{devScreenResolution()};
-    info.screenWidth = res.first;
-    info.screenHeight = res.second;
+    const auto size{devScreenSize()};
+    info.screenWidth = size.first;
+    info.screenHeight = size.second;
     return info;
 }
 
@@ -64,7 +70,7 @@ QString AdbClient::devAndroidVer()
     return AdbClient::shell("getprop ro.build.version.release").simplified();
 }
 
-QPair<qint32, qint32> AdbClient::devScreenResolution()
+QPair<qint32, qint32> AdbClient::devScreenSize()
 {
     QByteArray res = shell("dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
     QRegExp re("\\b(StableDisplayWidth|StableDisplayHeight)=(\\d+)\\b");
@@ -190,9 +196,6 @@ bool AdbClient::fetchScreenRawInit()
 
 QImage AdbClient::fetchScreenRaw()
 {
-    QElapsedTimer timer;
-    timer.start();
-
     if (!fetchScreenRawInit()) {
         return QImage();
     }
@@ -217,9 +220,7 @@ QImage AdbClient::fetchScreenRaw()
             }
         }
     }
-
     m_sock.readAll();
-    m_sock.waitForDisconnected();
 
     return img;
 }
@@ -428,7 +429,7 @@ void AdbClient::connectToHost()
 {
 	//m_sock.setSocketOption(QTcpSocket::LowDelayOption, 1); // TCP_NODELAY
 	m_sock.setSocketOption(QTcpSocket::KeepAliveOption, 1); // SO_KEEPALIVE
-	m_sock.connectToHost(QStringLiteral("localhost"), 5037, QIODevice::ReadWrite);
+    m_sock.connectToHost(m_host, m_port, QIODevice::ReadWrite);
 }
 
 void AdbClient::disconnectFromHost()
@@ -466,4 +467,11 @@ qint64 AdbClient::isConnected()
     return m_sock.state() != QTcpSocket::UnconnectedState;
 }
 
-
+QList<QString> AdbClient::getDeviceList(const QString &host, int port)
+{
+    const auto adb{new AdbClient()};
+    adb->setHost(host, port);
+    auto devList{adb->getDeviceList()};
+    adb->deleteLater();
+    return devList;
+}

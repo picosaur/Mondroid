@@ -1,8 +1,9 @@
 #ifndef GRIDWIDGET_H
 #define GRIDWIDGET_H
 #include <QWidget>
+#include "cellwidget.h"
 
-class DroidWidget;
+class QGridLayout;
 
 class GridWidget : public QWidget
 {
@@ -12,13 +13,17 @@ public:
     explicit GridWidget(QWidget *parent = nullptr);
     ~GridWidget();
 
-    void init(int rows, int cols);
+    void init(const CellWidgetConf &conf);
+    void free();
     void start();
     void stop();
 
 private:
+    CellWidgetConf m_cellConf{};
+
     QWidget *m_mainWidget{};
-    std::vector<DroidWidget *> m_droidWidgets{};
+    QGridLayout *m_gridLayout{};
+    std::vector<CellWidget *> m_cellWidgets{};
 };
 
 #endif // SCROLLAREA_H

@@ -55,12 +55,13 @@ public:
 	explicit AdbClient(QObject *parent = nullptr);
     ~AdbClient();
 
+    void setHost(const QString &host, int port);
     void setDevice(const QString &deviceId);
 
     AdbDeviceInfo getDeviceInfo();
     bool devIsArch64();
     QString devAndroidVer();
-    QPair<int, int> devScreenResolution();
+    QPair<int, int> devScreenSize();
     qint32 devScreenRotation();
     bool devIsScreenAwake();
     QList<QString> getDeviceList();
@@ -95,6 +96,8 @@ public:
     QByteArray readLine();
     QByteArray readAvailable();
 
+    static QList<QString> getDeviceList(const QString &host, int port = 5037);
+
 signals:
 	void stateChanged(QAbstractSocket::SocketState);
     void errorOcurred(QAbstractSocket::SocketError);
@@ -102,6 +105,8 @@ signals:
     void bytesWritten(qint64 bytes);
 
 private:
+    QString m_host{"127.0.0.1"};
+    int m_port{5037};
     QString m_deviceId{};
     QTcpSocket m_sock{};
     FBInfo m_fbInfo{};

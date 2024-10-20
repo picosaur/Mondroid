@@ -5,6 +5,7 @@
 
 #define FB_VAR(VAR) (version == 16 ? v0.VAR : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
 #define FB_VAR_1(VAR, DEF) (version == 16 ? DEF : version == 1 ? v1.VAR : version == 2 ? v2.VAR : 0)
+
 struct FBInfo
 {
     quint32 version;
@@ -47,10 +48,12 @@ struct FBInfo
             quint32 alpha_length{};
         } v2;
     };
+
     quint32 width() { return FB_VAR(width); }
     quint32 height() { return FB_VAR(height); }
     quint32 size() { return FB_VAR(size); }
     quint32 bpp() { return FB_VAR_1(bpp, 16); }
+
     QImage::Format format()
     {
         if (version == 16)

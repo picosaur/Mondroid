@@ -1,5 +1,5 @@
-#ifndef DROIDWIDGET_H
-#define DROIDWIDGET_H
+#ifndef CELLWIDGET_H
+#define CELLWIDGET_H
 #include <QWidget>
 class QLabel;
 class QVBoxLayout;
@@ -10,18 +10,32 @@ class QPushButton;
 class InitThread;
 class VideoThread;
 
-class DroidWidget : public QWidget
+struct CellWidgetConf
+{
+    QString host{};
+    int port{};
+    int rows{};
+    int cols{};
+    int scale{};
+    int rate{};
+    bool fast{};
+};
+
+class CellWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    DroidWidget(QWidget *parent = nullptr);
-    ~DroidWidget();
+    CellWidget(QWidget *parent = nullptr);
+    ~CellWidget();
 
-    void setDeviceId(const QString &deviceId);
+    void setDevice(const QString &deviceId);
+    void setConf(const CellWidgetConf &conf);
+
     void start();
     void stop();
 
+public slots:
     void updateScreen(const QImage &image);
 
 private slots:
@@ -31,6 +45,8 @@ private slots:
     void onCBtnClicked();
 
 private:
+    CellWidgetConf m_conf{};
+
     QVBoxLayout *m_mainLayout{};
     QHBoxLayout *m_toolLayout{};
     QScrollArea *m_area{};
@@ -38,7 +54,6 @@ private:
     QLineEdit *m_deviceInp{};
     QPushButton *m_aBtn{}, *m_bBtn{}, *m_cBtn{};
 
-    InitThread *m_initThread{};
-    VideoThread *m_videoThread{};
+    QThread *m_videoThread{};
 };
-#endif // DROIDWIDGET_H
+#endif // CELLWIDGET_H

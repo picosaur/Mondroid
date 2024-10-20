@@ -1,5 +1,4 @@
 project(Mondroid)
-
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 set(QT_MIN_VERSION "5.3.0")
 
@@ -9,14 +8,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 cmake_policy(SET CMP0043 NEW)
 cmake_policy(SET CMP0063 NEW)
 if(POLICY CMP0071)
-	cmake_policy(SET CMP0071 NEW)
+    cmake_policy(SET CMP0071 NEW)
 endif()
 
 include(FeatureSummary)
 include(GNUInstallDirs)
 
 find_package(Qt5 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
-	Core Gui Network Widgets
+    Core Gui Network Widgets
 )
 
 set(CMAKE_AUTOUIC ON)

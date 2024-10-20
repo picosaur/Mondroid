@@ -1,8 +1,10 @@
 #include "toolbar.h"
+#include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSettings>
 #include <QSpacerItem>
 #include <QSpinBox>
 
@@ -16,6 +18,8 @@ Toolbar::Toolbar(QWidget *parent)
     m_hostInp = new QLineEdit();
     m_portInp = new QSpinBox();
     m_scaleInp = new QSpinBox();
+    m_rateInp = new QSpinBox();
+    m_fastInp = new QCheckBox("Fast");
 
     m_rowsInp->setFixedSize(60, 30);
     m_rowsInp->setMinimum(1);
@@ -36,30 +40,52 @@ Toolbar::Toolbar(QWidget *parent)
     m_portInp->setFixedSize(60, 30);
 
     m_scaleInp->setMinimum(1);
-    m_scaleInp->setMaximum(10);
+    m_scaleInp->setMaximum(999);
+    m_scaleInp->setSuffix("%");
+    m_scaleInp->setSingleStep(10);
+    m_scaleInp->setValue(100);
     m_scaleInp->setFixedSize(60, 30);
+
+    m_rateInp->setMinimum(1);
+    m_rateInp->setMaximum(999);
 
     addWidget(m_startBtn);
     addWidget(m_stopBtn);
-    addSeparator();
-    addWidget(new QLabel("Rows"));
-    addWidget(m_rowsInp);
-    addWidget(new QLabel("Cols"));
-    addWidget(m_colsInp);
-    addSeparator();
-    addWidget(new QLabel("Scale"));
-    addWidget(m_scaleInp);
+    // Host Port
     addSeparator();
     addWidget(new QLabel("Host"));
     addWidget(m_hostInp);
     addWidget(new QLabel("Port"));
     addWidget(m_portInp);
+    // Rows Cols
+    addSeparator();
+    addWidget(new QLabel("Rows"));
+    addWidget(m_rowsInp);
+    addWidget(new QLabel("Cols"));
+    addWidget(m_colsInp);
+    // Scale Rate Fast
+    addSeparator();
+    addWidget(new QLabel("Scale"));
+    addWidget(m_scaleInp);
+    addWidget(new QLabel("Rate"));
+    addWidget(m_rateInp);
+    addWidget(m_fastInp);
 
     connect(m_startBtn, &QPushButton::clicked, this, &Toolbar::start);
     connect(m_stopBtn, &QPushButton::clicked, this, &Toolbar::stop);
 }
 
 Toolbar::~Toolbar() {}
+
+QString Toolbar::host() const
+{
+    return m_hostInp->text();
+}
+
+int Toolbar::port() const
+{
+    return m_portInp->value();
+}
 
 int Toolbar::rows() const
 {
@@ -76,12 +102,47 @@ int Toolbar::scale() const
     return m_scaleInp->value();
 }
 
-QString Toolbar::host() const
+int Toolbar::rate() const
 {
-    return m_hostInp->text();
+    return m_rateInp->value();
 }
 
-int Toolbar::port() const
+bool Toolbar::fast() const
 {
-    return m_portInp->value();
+    return m_fastInp->isChecked();
+}
+
+CellWidgetConf Toolbar::cellConf() const
+{
+    CellWidgetConf conf;
+    conf.host = host();
+    conf.port = port();
+    conf.rows = rows();
+    conf.cols = cols();
+    conf.scale = scale();
+    conf.rate = rate();
+    conf.fast = fast();
+    return conf;
+}
+
+void Toolbar::saveState(QSettings &settings) const
+{
+    settings.setValue("toolbar/host", host());
+    settings.setValue("toolbar/port", port());
+    settings.setValue("toolbar/rows", rows());
+    settings.setValue("toolbar/cols", cols());
+    settings.setValue("toolbar/scale", scale());
+    settings.setValue("toolbar/rate", rate());
+    settings.setValue("toolbar/fast", fast());
+}
+
+void Toolbar::loadState(const QSettings &settings)
+{
+    m_hostInp->setText(settings.value("toolbar/host", "127.0.0.1").toString());
+    m_portInp->setValue(settings.value("toolbar/port", 5037).toInt());
+    m_rowsInp->setValue(settings.value("toolbar/rows", 2).toInt());
+    m_colsInp->setValue(settings.value("toolbar/cols", 4).toInt());
+    m_scaleInp->setValue(settings.value("toolbar/scale", 1).toInt());
+    m_rateInp->setValue(settings.value("toolbar/rate", 1).toInt());
+    m_fastInp->setChecked(settings.value("toolbar/fast", false).toBool());
 }

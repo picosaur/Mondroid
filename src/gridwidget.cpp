@@ -2,8 +2,8 @@
 #include <QDebug>
 #include <QGridLayout>
 #include <QLabel>
+#include "cellwidget.h"
 #include "device/adbclient.h"
-#include "droidwidget.h"
 
 GridWidget::GridWidget(QWidget *parent)
 {
@@ -12,48 +12,58 @@ GridWidget::GridWidget(QWidget *parent)
 
 GridWidget::~GridWidget() {}
 
-void GridWidget::init(int rows, int cols)
+void GridWidget::init(const CellWidgetConf &conf)
 {
-    auto grid = new QGridLayout();
-    m_droidWidgets.clear();
-    for (int i{}; i != rows; ++i) {
-        for (int j{}; j != cols; ++j) {
-            auto droidw{new DroidWidget(this)};
-            grid->addWidget(droidw, i, j);
-            m_droidWidgets.push_back(droidw);
+    m_cellConf = conf;
+
+    free();
+
+    m_gridLayout = new QGridLayout();
+    for (int i{}; i != m_cellConf.rows; ++i) {
+        for (int j{}; j != m_cellConf.cols; ++j) {
+            auto cell{new CellWidget(this)};
+            cell->setConf(m_cellConf);
+            m_gridLayout->addWidget(cell, i, j);
+            m_cellWidgets.push_back(cell);
         }
     }
-    if (m_mainWidget != nullptr) {
+    m_mainWidget = new QWidget();
+    m_mainWidget->setLayout(m_gridLayout);
+    layout()->addWidget(m_mainWidget);
+}
+
+void GridWidget::free()
+{
+    if (m_mainWidget) {
         layout()->removeWidget(m_mainWidget);
         m_mainWidget->deleteLater();
+        m_gridLayout->deleteLater();
+        for (auto &w : m_cellWidgets) {
+            w->deleteLater();
+        }
+        m_cellWidgets.clear();
     }
-    m_mainWidget = new QWidget();
-    m_mainWidget->setLayout(grid);
-    layout()->addWidget(m_mainWidget);
 }
 
 void GridWidget::start()
 {
-    const auto adb{new AdbClient()};
-    auto devList{adb->getDeviceList()};
-    adb->deleteLater();
-
-    auto dwIt{m_droidWidgets.begin()};
-    for (auto &item : devList) {
-        (*dwIt)->setDeviceId(item);
-        dwIt++;
-        if (dwIt == m_droidWidgets.end()) {
+    const auto devList{AdbClient::getDeviceList(m_cellConf.host, m_cellConf.port)};
+    auto it{m_cellWidgets.begin()};
+    for (auto &devId : devList) {
+        (*it)->setDevice(devId);
+        it++;
+        if (it == m_cellWidgets.end()) {
             break;
         }
     }
-    for (auto dw : m_droidWidgets) {
+    for (auto dw : m_cellWidgets) {
         dw->start();
     }
 }
 
 void GridWidget::stop()
 {
-    for (auto dw : m_droidWidgets) {
+    for (auto dw : m_cellWidgets) {
         dw->stop();
     }
 }

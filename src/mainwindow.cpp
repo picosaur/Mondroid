@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QLibraryInfo>
 #include <QMouseEvent>
+#include <QSettings>
 #include <QTimer>
 #include "gridwidget.h"
 #include "toolbar.h"
@@ -20,17 +21,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_toolbar, &Toolbar::start, this, &MainWindow::onStart);
     connect(m_toolbar, &Toolbar::stop, this, &MainWindow::onStop);
+
+    QSettings settings("settings.ini", QSettings::IniFormat);
+    m_toolbar->loadState(settings);
 }
 
 MainWindow::~MainWindow()
 {
+    QSettings settings("settings.ini", QSettings::IniFormat);
+    m_toolbar->saveState(settings);
     delete ui;
 }
 
 void MainWindow::onStart()
 {
     m_gridWidget->stop();
-    m_gridWidget->init(m_toolbar->rows(), m_toolbar->cols());
+    m_gridWidget->init(m_toolbar->cellConf());
     m_gridWidget->start();
 }
 
