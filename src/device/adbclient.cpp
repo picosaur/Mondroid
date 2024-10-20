@@ -120,6 +120,175 @@ QList<QString> AdbClient::getDeviceList()
     return list;
 }
 
+bool AdbClient::connectToDevice()
+{
+    QByteArray cmd("host:transport");
+    cmd.append(":").append(m_deviceId.toLatin1());
+    if (!send(cmd)) {
+        qWarning() << "WARNING: unable to connect to android device";
+        return false;
+    }
+    return true;
+}
+
+bool AdbClient::forwardTcpPort(int local, int remote)
+{
+    QByteArray cmd;
+    cmd = QByteArray("host-serial:").append(m_deviceId.toLatin1());
+    cmd.append("forward:tcp:")
+        .append(QString::number(local).toLatin1())
+        .append(";tcp:")
+        .append(QString::number(remote).toLatin1());
+    if (!send(cmd)) {
+        qWarning() << "WARNING: unable to forward port to android device";
+        return false;
+    }
+    return true;
+}
+
+bool AdbClient::fetchScreenRawInit()
+{
+    if (!connectToDevice())
+        return false;
+
+    if (!send("framebuffer:")) {
+        qWarning() << "FRAMEBUFFER unable to connect to framebuffer";
+        return false;
+    }
+    if (!read(&m_fbInfo.version, sizeof(m_fbInfo.version))) {
+        qDebug() << "FRAMEBUFFER error reading framebuffer version";
+        return false;
+    }
+
+    bool res = false;
+    switch (m_fbInfo.version) {
+    case 16: // version 0
+        res = read(&m_fbInfo.v0, sizeof(m_fbInfo.v0));
+        if (!write("0", 1)) {
+            qDebug() << "FRAMEBUFFER error writing v0 request";
+            return false;
+        }
+        break;
+    case 1:
+        res = read(&m_fbInfo.v1, sizeof(m_fbInfo.v1));
+        Q_ASSERT(m_fbInfo.v1.size == m_fbInfo.v1.width * m_fbInfo.v1.height * m_fbInfo.v1.bpp / 8);
+        break;
+    case 2:
+        res = read(&m_fbInfo.v2, sizeof(m_fbInfo.v2));
+        break;
+    default:
+        res = false;
+        break;
+    }
+    if (!res) {
+        qDebug() << "FRAMEBUFFER error reading framebuffer info";
+        return false;
+    }
+
+    return true;
+}
+
+QImage AdbClient::fetchScreenRaw()
+{
+    QElapsedTimer timer;
+    timer.start();
+
+    if (!fetchScreenRawInit()) {
+        return QImage();
+    }
+
+    const int bytesPerLine = m_fbInfo.width() * m_fbInfo.bpp() / 8;
+    QImage img(m_fbInfo.width(), m_fbInfo.height(), m_fbInfo.format());
+    for (int y = 0, h = img.height(); y < h; y++) {
+        if (!read(img.scanLine(y), bytesPerLine)) {
+            qDebug() << "FRAMEBUFFER error reading framebuffer frame";
+            return img;
+        }
+    }
+    if (m_fbInfo.format() == QImage::Format_RGB32) {
+        // swap R and B
+        for (int y = 0, h = img.height(); y < h; y++) {
+            uchar *s = img.scanLine(y);
+            for (int x = 0, w = img.width(); x < w; x++) {
+                s += 4;
+                const int t = s[0];
+                s[0] = s[2];
+                s[2] = t;
+            }
+        }
+    }
+
+    m_sock.readAll();
+    m_sock.waitForDisconnected();
+
+    return img;
+}
+
+QImage AdbClient::fetchScreenPng()
+{
+    if (!connectToDevice()) {
+        return QImage();
+    }
+    if (!send("shell:stty raw; screencap -p")) {
+        qWarning() << "FRAMEBUFFER error executing PNG screencap";
+        return QImage();
+    }
+    QByteArray res = readAll();
+    return QImage::fromData(res);
+}
+
+QImage AdbClient::fetchScreenJpeg()
+{
+    if (!connectToDevice()) {
+        return QImage();
+    }
+    if (!send("shell:stty raw; screencap -j")) {
+        qWarning() << "FRAMEBUFFER error executing JPEG screencap";
+        return QImage();
+    }
+    QByteArray res = readAll();
+    return QImage::fromData(res);
+}
+
+QByteArray AdbClient::shell(const char *cmd)
+{
+    if (!connectToDevice()) {
+        return QByteArray();
+    }
+    if (!send(QByteArray("shell:").append(cmd))) {
+        qWarning() << "WARNING: unable to execute shell command:" << cmd;
+        return QByteArray();
+    }
+    return readAll();
+}
+
+bool AdbClient::sendEvents(AdbEventList events)
+{
+    for (const AdbEvent &evt : events) {
+        if (!write(&evt, sizeof(AdbEvent))) {
+            qDebug() << __FUNCTION__ << "failed sending event";
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool AdbClient::sendEvents(int deviceIndex, AdbEventList events)
+{
+    AdbClient adb;
+    if (!adb.connectToDevice()) {
+        return false;
+    }
+    if (!adb.send(QByteArray("dev:")
+                      .append("/dev/input/event")
+                      .append(QString::number(deviceIndex).toLatin1()))) {
+        qDebug() << __FUNCTION__ << "failed opening device" << deviceIndex;
+        return false;
+    }
+    return adb.sendEvents(events);
+}
+
 bool AdbClient::write(const void *data, qint64 max)
 {
     int done = 0;
@@ -262,35 +431,14 @@ void AdbClient::connectToHost()
 	m_sock.connectToHost(QStringLiteral("localhost"), 5037, QIODevice::ReadWrite);
 }
 
-bool AdbClient::connectToDevice()
+void AdbClient::disconnectFromHost()
 {
-	QByteArray cmd("host:transport");
-    cmd.append(":").append(m_deviceId.toLatin1());
-    if (!send(cmd)) {
-        qWarning() << "WARNING: unable to connect to android device";
-        return false;
-    }
-    return true;
-}
-
-bool AdbClient::forwardTcpPort(int local, int remote)
-{
-	QByteArray cmd;
-    cmd = QByteArray("host-serial:").append(m_deviceId.toLatin1());
-    cmd.append("forward:tcp:")
-        .append(QString::number(local).toLatin1())
-        .append(";tcp:")
-        .append(QString::number(remote).toLatin1());
-    if (!send(cmd)) {
-        qWarning() << "WARNING: unable to forward port to android device";
-        return false;
-    }
-    return true;
+    return m_sock.disconnectFromHost();
 }
 
 void AdbClient::close()
 {
-    m_sock.close();
+    return m_sock.close();
 }
 
 bool AdbClient::waitForDisconnected(int msecs)
@@ -318,145 +466,4 @@ qint64 AdbClient::isConnected()
     return m_sock.state() != QTcpSocket::UnconnectedState;
 }
 
-bool AdbClient::fetchScreenRawInit()
-{
-	if(!connectToDevice())
-		return false;
 
-	if(!send("framebuffer:")) {
-		qWarning() << "FRAMEBUFFER unable to connect to framebuffer";
-		return false;
-	}
-	if(!read(&m_fbInfo.version, sizeof(m_fbInfo.version))) {
-		qDebug() << "FRAMEBUFFER error reading framebuffer version";
-		return false;
-	}
-
-	bool res = false;
-	switch(m_fbInfo.version) {
-	case 16: // version 0
-		res = read(&m_fbInfo.v0, sizeof(m_fbInfo.v0));
-		if(!write("0", 1)) {
-			qDebug() << "FRAMEBUFFER error writing v0 request";
-			return false;
-		}
-		break;
-	case 1:
-		res = read(&m_fbInfo.v1, sizeof(m_fbInfo.v1));
-		Q_ASSERT(m_fbInfo.v1.size == m_fbInfo.v1.width * m_fbInfo.v1.height * m_fbInfo.v1.bpp / 8);
-		break;
-	case 2:
-		res = read(&m_fbInfo.v2, sizeof(m_fbInfo.v2));
-		break;
-	default:
-		res = false;
-		break;
-	}
-	if(!res) {
-		qDebug() << "FRAMEBUFFER error reading framebuffer info";
-		return false;
-	}
-
-	return true;
-}
-
-QImage AdbClient::fetchScreenRaw()
-{
-	QElapsedTimer timer;
-	timer.start();
-
-    if (!fetchScreenRawInit()) {
-        return QImage();
-    }
-
-    const int bytesPerLine = m_fbInfo.width() * m_fbInfo.bpp() / 8;
-    QImage img(m_fbInfo.width(), m_fbInfo.height(), m_fbInfo.format());
-    for (int y = 0, h = img.height(); y < h; y++) {
-        if (!read(img.scanLine(y), bytesPerLine)) {
-            qDebug() << "FRAMEBUFFER error reading framebuffer frame";
-            return img;
-        }
-    }
-    if (m_fbInfo.format() == QImage::Format_RGB32) {
-        // swap R and B
-        for (int y = 0, h = img.height(); y < h; y++) {
-            uchar *s = img.scanLine(y);
-            for (int x = 0, w = img.width(); x < w; x++) {
-                s += 4;
-                const int t = s[0];
-                s[0] = s[2];
-                s[2] = t;
-            }
-        }
-    }
-
-    m_sock.readAll();
-    m_sock.waitForDisconnected();
-
-    return img;
-}
-
-QImage AdbClient::fetchScreenPng()
-{
-    if (!connectToDevice()) {
-        return QImage();
-    }
-    if (!send("shell:stty raw; screencap -p")) {
-        qWarning() << "FRAMEBUFFER error executing PNG screencap";
-        return QImage();
-    }
-    QByteArray res = readAll();
-    return QImage::fromData(res);
-}
-
-QImage AdbClient::fetchScreenJpeg()
-{
-    if (!connectToDevice()) {
-        return QImage();
-    }
-    if(!send("shell:stty raw; screencap -j")) {
-		qWarning() << "FRAMEBUFFER error executing JPEG screencap";
-		return QImage();
-	}
-	QByteArray res = readAll();
-	return QImage::fromData(res);
-}
-
-QByteArray AdbClient::shell(const char *cmd)
-{
-    if (!connectToDevice()) {
-        return QByteArray();
-    }
-    if (!send(QByteArray("shell:").append(cmd))) {
-        qWarning() << "WARNING: unable to execute shell command:" << cmd;
-        return QByteArray();
-    }
-    return readAll();
-}
-
-bool AdbClient::sendEvents(AdbEventList events)
-{
-	for(const AdbEvent &evt : events) {
-		if(!write(&evt, sizeof(AdbEvent))) {
-			qDebug() << __FUNCTION__ << "failed sending event";
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool AdbClient::sendEvents(int deviceIndex, AdbEventList events)
-{
-	AdbClient adb;
-    if (!adb.connectToDevice()) {
-        return false;
-    }
-    if (!adb.send(QByteArray("dev:")
-                      .append("/dev/input/event")
-                      .append(QString::number(deviceIndex).toLatin1()))) {
-        qDebug() << __FUNCTION__ << "failed opening device" << deviceIndex;
-        return false;
-    }
-    return adb.sendEvents(events);
-}

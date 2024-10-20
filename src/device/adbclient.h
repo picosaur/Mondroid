@@ -56,6 +56,7 @@ public:
     ~AdbClient();
 
     void setDevice(const QString &deviceId);
+
     AdbDeviceInfo getDeviceInfo();
     bool devIsArch64();
     QString devAndroidVer();
@@ -64,10 +65,19 @@ public:
     bool devIsScreenAwake();
     QList<QString> getDeviceList();
 
-    void connectToHost();
     bool connectToDevice();
     bool forwardTcpPort(int local, int remote);
+    bool fetchScreenRawInit();
+    QImage fetchScreenRaw();
+    QImage fetchScreenPng();
+    QImage fetchScreenJpeg();
 
+    QByteArray shell(const char *cmd);
+    bool sendEvents(AdbEventList events);
+    bool sendEvents(int deviceIndex, AdbEventList events);
+
+    void connectToHost();
+    void disconnectFromHost();
     void close();
     bool waitForDisconnected(int msecs = -1);
     bool waitForReadyRead(int msecs = -1);
@@ -78,23 +88,12 @@ public:
     bool read(void *data, qint64 max);
     bool write(const void *data, qint64 max);
     bool write(const QByteArray &data);
-
     bool send(QByteArray command);
-
     bool readStatus();
     QByteArray readResponse();
     QByteArray readAll();
     QByteArray readLine();
     QByteArray readAvailable();
-
-    bool fetchScreenRawInit();
-    QImage fetchScreenRaw();
-    QImage fetchScreenPng();
-    QImage fetchScreenJpeg();
-
-    QByteArray shell(const char *cmd);
-    bool sendEvents(AdbEventList events);
-    static bool sendEvents(int deviceIndex, AdbEventList events);
 
 signals:
 	void stateChanged(QAbstractSocket::SocketState);

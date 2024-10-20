@@ -348,13 +348,14 @@ void VideoThread::run()
 {
     m_adb = new AdbClient();
     m_adb->setDevice(m_deviceId);
-
     if (m_videoMode == FastH264) {
         h264Loop();
     } else {
         nativeLoop();
     }
-    m_adb->close();
+    m_adb->disconnectFromHost();
     m_adb->waitForDisconnected();
+    m_adb->close();
     m_adb->deleteLater();
+    m_adb = {};
 }

@@ -18,11 +18,23 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(m_gridWidget);
     addToolBar(m_toolbar);
 
-    connect(m_toolbar, &Toolbar::start, m_gridWidget, &GridWidget::start);
-    connect(m_toolbar, &Toolbar::stop, m_gridWidget, &GridWidget::stop);
+    connect(m_toolbar, &Toolbar::start, this, &MainWindow::onStart);
+    connect(m_toolbar, &Toolbar::stop, this, &MainWindow::onStop);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::onStart()
+{
+    m_gridWidget->stop();
+    m_gridWidget->init(m_toolbar->rows(), m_toolbar->cols());
+    m_gridWidget->start();
+}
+
+void MainWindow::onStop()
+{
+    m_gridWidget->stop();
 }

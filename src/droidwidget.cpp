@@ -57,7 +57,6 @@ void DroidWidget::setDeviceId(const QString &deviceId)
 
 void DroidWidget::start()
 {
-    stop();
     const auto s{m_deviceInp->text()};
     if (s.isEmpty()) {
         return;
@@ -66,6 +65,7 @@ void DroidWidget::start()
     m_videoThread->setDeviceId(m_deviceInp->text());
     m_videoThread->setVideoMode(VideoThread::NativeRaw);
     connect(m_videoThread, &VideoThread::imageReady, this, &DroidWidget::updateScreen);
+    connect(m_videoThread, &VideoThread::finished, this, &DroidWidget::onVideoFinished);
     connect(m_videoThread, &VideoThread::finished, m_videoThread, &VideoThread::deleteLater);
     m_videoThread->start();
 }
@@ -73,9 +73,7 @@ void DroidWidget::start()
 void DroidWidget::stop()
 {
     if (m_videoThread) {
-        m_videoThread->disconnect(this);
         m_videoThread->requestInterruption();
-        m_videoThread->wait();
     }
 }
 
@@ -83,6 +81,11 @@ void DroidWidget::updateScreen(const QImage &image)
 {
     m_screen->setPixmap(QPixmap::fromImage(image));
     m_screen->setFixedSize(image.size());
+}
+
+void DroidWidget::onVideoFinished()
+{
+    m_videoThread = {};
 }
 
 void DroidWidget::onABtnClicked() {}

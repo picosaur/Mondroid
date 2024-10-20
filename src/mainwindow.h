@@ -16,6 +16,10 @@ public:
 	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
+private slots:
+    void onStart();
+    void onStop();
+
 private:
     Ui::MainWindow *ui{};
     Toolbar *m_toolbar{};

@@ -19,12 +19,13 @@ public:
     ~DroidWidget();
 
     void setDeviceId(const QString &deviceId);
-
     void start();
     void stop();
 
-private slots:
     void updateScreen(const QImage &image);
+
+private slots:
+    void onVideoFinished();
     void onABtnClicked();
     void onBBtnClicked();
     void onCBtnClicked();
