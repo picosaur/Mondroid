@@ -61,7 +61,9 @@ public:
     AdbDeviceInfo getDeviceInfo();
     bool devIsArch64();
     QString devAndroidVer();
-    QPair<int, int> devScreenSize();
+    QPair<int, int> devStableScreenSize();
+    QPair<int, int> devPhysicalScreenSize();
+    QPair<int, int> devOverrideScreenSize();
     qint32 devScreenRotation();
     bool devIsScreenAwake();
     QList<QString> getDeviceList();

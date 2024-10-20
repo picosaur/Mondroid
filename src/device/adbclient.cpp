@@ -53,7 +53,7 @@ AdbDeviceInfo AdbClient::getDeviceInfo()
     info.androidVer = devAndroidVer();
     info.isArch64 = devIsArch64();
     info.screenRotation = devScreenRotation();
-    const auto size{devScreenSize()};
+    const auto size{devOverrideScreenSize()};
     info.screenWidth = size.first;
     info.screenHeight = size.second;
     return info;
@@ -70,7 +70,7 @@ QString AdbClient::devAndroidVer()
     return AdbClient::shell("getprop ro.build.version.release").simplified();
 }
 
-QPair<qint32, qint32> AdbClient::devScreenSize()
+QPair<int, int> AdbClient::devStableScreenSize()
 {
     QByteArray res = shell("dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
     QRegExp re("\\b(StableDisplayWidth|StableDisplayHeight)=(\\d+)\\b");
@@ -80,6 +80,22 @@ QPair<qint32, qint32> AdbClient::devScreenSize()
     i = re.indexIn(res, i + re.matchedLength());
     qint32 h = i != -1 ? re.cap(2).toInt() : 0;
     return {w, h};
+}
+
+QPair<int, int> AdbClient::devPhysicalScreenSize()
+{
+    QByteArray res = shell("wm size | grep Physical");
+    res = res.split(':').last().simplified();
+    auto arr = res.split('x');
+    return {arr.first().toInt(), arr.last().toInt()};
+}
+
+QPair<int, int> AdbClient::devOverrideScreenSize()
+{
+    QByteArray res = shell("wm size | grep Override");
+    res = res.split(':').last().simplified();
+    auto arr = res.split('x');
+    return {arr.first().toInt(), arr.last().toInt()};
 }
 
 int AdbClient::devScreenRotation()

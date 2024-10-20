@@ -72,17 +72,18 @@ void CellWidget::start()
 
     if (m_conf.fast) {
         auto videoThread = new FastVideoThread();
-        videoThread->setDevice(m_deviceInp->text());
         m_videoThread = videoThread;
     } else {
         auto videoThread = new VideoThread();
-        videoThread->setDevice(m_deviceInp->text());
         videoThread->setImageFormat(VideoThread::ImageRaw);
-        videoThread->setImageScalePercent(m_conf.scale);
         m_videoThread = videoThread;
     }
 
-    connect(m_videoThread, SIGNAL(imageReady(QImage)), this, SLOT(updateScreen(QImage)));
+    m_videoThread->setDevice(m_deviceInp->text());
+    m_videoThread->setImageScalePercent(m_conf.scale);
+    m_videoThread->setImageRate(m_conf.rate);
+
+    connect(m_videoThread, &VideoThread::imageReady, this, &CellWidget::updateScreen);
     connect(m_videoThread, &VideoThread::finished, this, &CellWidget::onVideoFinished);
     connect(m_videoThread, &VideoThread::finished, m_videoThread, &VideoThread::deleteLater);
     m_videoThread->start();

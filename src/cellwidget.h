@@ -7,7 +7,6 @@ class QHBoxLayout;
 class QScrollArea;
 class QLineEdit;
 class QPushButton;
-class InitThread;
 class VideoThread;
 
 struct CellWidgetConf
@@ -54,6 +53,6 @@ private:
     QLineEdit *m_deviceInp{};
     QPushButton *m_aBtn{}, *m_bBtn{}, *m_cBtn{};
 
-    QThread *m_videoThread{};
+    VideoThread *m_videoThread{};
 };
 #endif // CELLWIDGET_H

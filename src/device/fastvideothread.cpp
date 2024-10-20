@@ -17,6 +17,11 @@
    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+// See also
+// https://ffmpeg.org/doxygen/trunk/encode_video_8c-example.html
+// https://github.com/apc-llc/moviemaker-cpp/blob/master/src/writer.cpp
+// https://stackoverflow.com/questions/34511312/how-to-encode-a-video-from-several-images-generated-in-a-c-program-without-wri
+
 #include "fastvideothread.h"
 #include "adbclient.h"
 
@@ -30,219 +35,31 @@ extern "C" {
 }
 
 FastVideoThread::FastVideoThread(QObject *parent)
-    : QThread{parent}
+    : VideoThread{parent}
 {}
 
 FastVideoThread::~FastVideoThread() {}
 
-void FastVideoThread::setHost(const QString &host, int port)
+void FastVideoThread::loop()
 {
-    m_host = host;
-    m_port = port;
-}
-
-void FastVideoThread::setDevice(const QString &deviceId)
-{
-    m_deviceId = deviceId;
-}
-
-void FastVideoThread::setImageSize(int w, int h)
-{
-    m_imageWidth = w;
-    m_imageHeight = h;
-}
-
-void FastVideoThread::run()
-{
-    m_adb = new AdbClient();
-    m_adb->setHost(m_host, m_port);
-    m_adb->setDevice(m_deviceId);
-    h264Loop();
-    m_adb->disconnectFromHost();
-    m_adb->waitForDisconnected();
-    m_adb->close();
-    m_adb->deleteLater();
-    m_adb = {};
-}
-
-const char *FastVideoThread::h264Error(int errorCode)
-{
-    static char errorText[1024];
-    av_strerror(errorCode, errorText, sizeof(errorText));
-    return errorText;
-}
-
-bool FastVideoThread::h264Connect()
-{
-    if (!m_adb->connectToDevice()) {
-        return false;
+    if (!initStream()) {
+        exitStream();
+        return;
     }
 
-    QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 --size ");
-    cmd.append(QString::number(m_imageWidth).toUtf8())
-        .append('x')
-        .append(QString::number(m_imageHeight).toUtf8())
-        .append(" -");
-
-    if (!m_adb->send(cmd)) {
-        qWarning() << "FRAMEBUFFER error executing" << cmd.mid(6);
-        return false;
-    }
-
-    qDebug() << "FRAMEBUFFER connected";
-    return true;
-}
-
-bool FastVideoThread::h264Init()
-{
-    auto read_packet = [](void *u, uint8_t *buf, int buf_size) -> int {
-        auto *me = reinterpret_cast<FastVideoThread *>(u);
-        qint64 len = me->m_adb->bytesAvailable();
-        while (len == 0) {
-            if (!me->m_adb->isConnected() && !me->h264Connect()) {
-                return -1;
-            }
-            const bool res = me->m_adb->waitForReadyRead(50);
-            if (me->isInterruptionRequested()) {
-                return -1;
-            }
-            if (!res) {
-                const QTcpSocket::SocketError err = me->m_adb->error();
-                if (err == QTcpSocket::RemoteHostClosedError) {
-                    qDebug() << "FRAMEBUFFER host disconnected " << err;
-                    return -1;
-                }
-                if (err != QTcpSocket::SocketTimeoutError) {
-                    qDebug() << "FRAMEBUFFER read failed:" << err;
-                    return -1;
-                }
-            } else {
-                len = me->m_adb->bytesAvailable();
-            }
-        }
-        if (len > buf_size) {
-            len = buf_size;
-        }
-        if (!me->m_adb->read(buf, len)) {
-            return -1;
-        }
-        return len;
-    };
-
-    const int bufSize = 8192;
-    unsigned char *buf = reinterpret_cast<unsigned char *>(av_malloc(bufSize));
-
-    // AVFormatContext
-    m_avFormat = avformat_alloc_context();
-    Q_ASSERT(m_avFormat != nullptr);
-    m_avFormat->pb = avio_alloc_context(buf, bufSize, 0, this, read_packet, nullptr, nullptr);
-    Q_ASSERT(m_avFormat->pb != nullptr);
-
-    // AVFrame
-    m_frame = av_frame_alloc();
-    Q_ASSERT(m_frame != nullptr);
-
-    // AVFrame
-    m_rgbFrame = av_frame_alloc();
-    Q_ASSERT(m_rgbFrame != nullptr);
-    av_image_alloc(m_rgbFrame->data,
-                   m_rgbFrame->linesize,
-                   m_imageWidth,
-                   m_imageHeight,
-                   AV_PIX_FMT_RGB24,
-                   32);
-
-    int ret{};
-    if ((ret = avformat_open_input(&m_avFormat, nullptr, nullptr, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't open input:" << h264Error(ret);
-        return false;
-    }
-
-    m_avFormat->probesize = 32;
-    //	m_avFormat->max_analyze_duration = 0;
-    if ((ret = avformat_find_stream_info(m_avFormat, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't find stream information:" << h264Error(ret);
-        return false;
-    }
-    av_dump_format(m_avFormat, 0, "", 0);
-
-    return true;
-}
-
-int FastVideoThread::h264VideoStreamIndex()
-{
-    int streamIndex{-1};
-    int ret{};
-
-    for (unsigned int i = 0; i < m_avFormat->nb_streams; i++) {
-        m_avStream = m_avFormat->streams[i];
-        if (m_avStream->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
-            continue;
-
-        const AVCodec *dec = avcodec_find_decoder(m_avStream->codecpar->codec_id);
-        if (!dec) {
-            qDebug() << "FRAMEBUFFER can't find decoder for stream" << i;
-            continue;
-        }
-
-        m_codecCtx = avcodec_alloc_context3(dec);
-        if (!m_codecCtx) {
-            qDebug() << "FRAMEBUFFER can't allocate the decoder context for stream" << i;
-            continue;
-        }
-        ret = avcodec_parameters_to_context(m_codecCtx, m_avStream->codecpar);
-        if (ret < 0) {
-            qDebug() << "FRAMEBUFFER failed to copy decoder parameters to input decoder context "
-                        "for stream"
-                     << i << h264Error(ret);
-            avcodec_free_context(&m_codecCtx);
-            continue;
-        }
-        if (m_codecCtx->codec_type != AVMEDIA_TYPE_VIDEO) {
-            avcodec_free_context(&m_codecCtx);
-            continue;
-        }
-        ret = avcodec_open2(m_codecCtx, dec, nullptr);
-        if (ret < 0) {
-            qDebug() << "FRAMEBUFFER failed to open decoder for stream" << i << h264Error(ret);
-            avcodec_free_context(&m_codecCtx);
-            continue;
-        }
-
-        m_swsContext = sws_getContext(m_codecCtx->width,
-                                      m_codecCtx->height,
-                                      m_codecCtx->pix_fmt,
-                                      m_imageWidth,
-                                      m_imageHeight,
-                                      AV_PIX_FMT_RGB24,
-                                      SWS_BICUBIC,
-                                      nullptr,
-                                      nullptr,
-                                      nullptr);
-
-        streamIndex = i;
-    }
-
-    return streamIndex;
-}
-
-bool FastVideoThread::h264Loop()
-{
-    if (!h264Init()) {
-        h264Exit();
-        return false;
-    }
-
-    int streamIndex = h264VideoStreamIndex();
+    int streamIndex = getStreamIndex();
     if (streamIndex == -1) {
-        h264Exit();
-        return false;
+        exitStream();
+        return;
+    }
+
+    if (!initFrames()) {
+        return;
     }
 
     AVPacket pkt;
     pkt.data = nullptr;
     pkt.size = 0;
-    bool res = false;
 
     while (!isInterruptionRequested()) {
         int ret = av_read_frame(m_avFormat, &pkt);
@@ -271,23 +88,24 @@ bool FastVideoThread::h264Loop()
                     break;
                 }
 
+                auto ls1{m_frame->linesize};
+                auto ls2{m_rgbFrame->linesize};
+                auto codec_ctx{*m_codecCtx};
+
                 sws_scale(m_swsContext,
                           m_frame->data,
                           m_frame->linesize,
                           0,
-                          m_imageHeight,
+                          m_codecCtx->height,
                           m_rgbFrame->data,
                           m_rgbFrame->linesize);
 
-                QImage img(m_imageWidth, m_imageHeight, QImage::Format_RGB888);
+                QImage img(m_codecCtx->width, m_codecCtx->height, QImage::Format_RGB888);
                 const uint8_t *data = m_rgbFrame->data[0];
-                for (int y = 0; y < m_imageHeight; y++) {
+                for (int y = 0; y < m_codecCtx->height; ++y) {
                     memcpy(img.scanLine(y), data, img.bytesPerLine());
                     data += m_rgbFrame->linesize[0];
                 }
-
-                auto s = img.size();
-                res = true;
                 emit imageReady(img);
             }
         }
@@ -299,11 +117,159 @@ bool FastVideoThread::h264Loop()
         }
     }
 
-    h264Exit();
-    return res;
+    exitStream();
 }
 
-void FastVideoThread::h264Exit()
+bool FastVideoThread::initStream()
+{
+    auto read_packet = [](void *u, uint8_t *buf, int buf_size) -> int {
+        auto *me = reinterpret_cast<FastVideoThread *>(u);
+        qint64 len = me->adb()->bytesAvailable();
+        while (len == 0) {
+            if (!me->adb()->isConnected() && !me->connectDevice()) {
+                return -1;
+            }
+            const bool res = me->adb()->waitForReadyRead(50);
+            if (me->isInterruptionRequested()) {
+                return -1;
+            }
+            if (!res) {
+                const QTcpSocket::SocketError err = me->adb()->error();
+                if (err == QTcpSocket::RemoteHostClosedError) {
+                    qDebug() << "FRAMEBUFFER host disconnected " << err;
+                    return -1;
+                }
+                if (err != QTcpSocket::SocketTimeoutError) {
+                    qDebug() << "FRAMEBUFFER read failed:" << err;
+                    return -1;
+                }
+            } else {
+                len = me->adb()->bytesAvailable();
+            }
+        }
+        if (len > buf_size) {
+            len = buf_size;
+        }
+        if (!me->adb()->read(buf, len)) {
+            return -1;
+        }
+        return len;
+    };
+
+    const int bufSize = 8192;
+    unsigned char *buf = reinterpret_cast<unsigned char *>(av_malloc(bufSize));
+
+    // AVFormatContext
+    m_avFormat = avformat_alloc_context();
+    Q_ASSERT(m_avFormat != nullptr);
+    m_avFormat->pb = avio_alloc_context(buf, bufSize, 0, this, read_packet, nullptr, nullptr);
+    Q_ASSERT(m_avFormat->pb != nullptr);
+
+    int ret{};
+    if ((ret = avformat_open_input(&m_avFormat, nullptr, nullptr, nullptr)) < 0) {
+        qDebug() << "FRAMEBUFFER can't open input:" << h264Error(ret);
+        return false;
+    }
+
+    m_avFormat->probesize = 32;
+    //	m_avFormat->max_analyze_duration = 0;
+    if ((ret = avformat_find_stream_info(m_avFormat, nullptr)) < 0) {
+        qDebug() << "FRAMEBUFFER can't find stream information:" << h264Error(ret);
+        return false;
+    }
+    av_dump_format(m_avFormat, 0, "", 0);
+
+    return true;
+}
+
+bool FastVideoThread::initFrames()
+{
+    // AVFrame
+    m_frame = av_frame_alloc();
+    if (m_frame == nullptr) {
+        return false;
+    }
+
+    // AVFrame
+    m_rgbFrame = av_frame_alloc();
+    if (m_rgbFrame == nullptr) {
+        return false;
+    }
+
+    av_image_alloc(m_rgbFrame->data,
+                   m_rgbFrame->linesize,
+                   m_codecCtx->width,
+                   m_codecCtx->height,
+                   AV_PIX_FMT_RGB24,
+                   32);
+
+    // SWS
+    m_swsContext = sws_getContext(m_codecCtx->width,
+                                  m_codecCtx->height,
+                                  m_codecCtx->pix_fmt,
+                                  m_codecCtx->width,
+                                  m_codecCtx->height,
+                                  AV_PIX_FMT_RGB24,
+                                  SWS_BICUBIC,
+                                  nullptr,
+                                  nullptr,
+                                  nullptr);
+    if (m_swsContext == nullptr) {
+        return false;
+    }
+
+    return true;
+}
+
+int FastVideoThread::getStreamIndex()
+{
+    int streamIndex{-1};
+    int ret{};
+
+    for (unsigned int i = 0; i < m_avFormat->nb_streams; i++) {
+        m_avStream = m_avFormat->streams[i];
+        if (m_avStream->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
+            continue;
+
+        const AVCodec *dec = avcodec_find_decoder(m_avStream->codecpar->codec_id);
+        if (!dec) {
+            qDebug() << "FRAMEBUFFER can't find decoder for stream" << i;
+            continue;
+        }
+
+        m_codecCtx = avcodec_alloc_context3(dec);
+        if (!m_codecCtx) {
+            qDebug() << "FRAMEBUFFER can't allocate the decoder context for stream" << i;
+            continue;
+        }
+        ret = avcodec_parameters_to_context(m_codecCtx, m_avStream->codecpar);
+        if (ret < 0) {
+            qDebug() << "FRAMEBUFFER failed to copy decoder parameters to input "
+                        "decoder context "
+                        "for stream"
+                     << i << h264Error(ret);
+            avcodec_free_context(&m_codecCtx);
+            continue;
+        }
+        if (m_codecCtx->codec_type != AVMEDIA_TYPE_VIDEO) {
+            avcodec_free_context(&m_codecCtx);
+            continue;
+        }
+        ret = avcodec_open2(m_codecCtx, dec, nullptr);
+        if (ret < 0) {
+            qDebug() << "FRAMEBUFFER failed to open decoder for stream" << i << h264Error(ret);
+            avcodec_free_context(&m_codecCtx);
+            continue;
+        }
+
+        streamIndex = i;
+        break;
+    }
+
+    return streamIndex;
+}
+
+void FastVideoThread::exitStream()
 {
     if (m_swsContext) {
         sws_freeContext(m_swsContext);
@@ -319,4 +285,27 @@ void FastVideoThread::h264Exit()
         avformat_close_input(&m_avFormat);
         avio_context_free(&ioContext);
     }
+}
+
+const char *FastVideoThread::h264Error(int errorCode)
+{
+    static char errorText[1024];
+    av_strerror(errorCode, errorText, sizeof(errorText));
+    return errorText;
+}
+
+bool FastVideoThread::connectDevice()
+{
+    if (!adb()->connectToDevice()) {
+        return false;
+    }
+
+    QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 -");
+
+    if (!adb()->send(cmd)) {
+        qWarning() << "FRAMEBUFFER error executing" << cmd.mid(6);
+        return false;
+    }
+
+    return true;
 }
