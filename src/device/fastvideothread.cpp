@@ -272,9 +272,13 @@ void FastVideoThread::exitStream()
     if (m_swsContext) {
         sws_freeContext(m_swsContext);
     }
-    av_frame_free(&m_frame);
-    av_freep(&m_rgbFrame->data[0]);
-    av_frame_free(&m_rgbFrame);
+    if (m_frame) {
+        av_frame_free(&m_frame);
+    }
+    if (m_rgbFrame) {
+        av_freep(&m_rgbFrame->data[0]);
+        av_frame_free(&m_rgbFrame);
+    }
     if (m_codecCtx) {
         avcodec_free_context(&m_codecCtx);
     }
