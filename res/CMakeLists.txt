@@ -1,4 +1,0 @@
-set(divvydroid_RES
-	${CMAKE_CURRENT_SOURCE_DIR}/divvydroid.qrc
-	CACHE INTERNAL EXPORTEDVARIABLE
-)
