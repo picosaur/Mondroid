@@ -31,6 +31,9 @@ public:
     void setDevice(const QString &deviceId);
     void setConf(const CellWidgetConf &conf);
 
+    QString device() const;
+    const CellWidgetConf &conf() const;
+
     void start();
     void stop();
 

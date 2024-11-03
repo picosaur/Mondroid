@@ -4,6 +4,7 @@
 #include "cellwidget.h"
 
 class QGridLayout;
+class QTimer;
 
 class GridWidget : public QWidget
 {
@@ -18,9 +19,14 @@ public:
     void start();
     void stop();
 
-private:
-    CellWidgetConf m_cellConf{};
+    QList<QString> devList() const;
 
+private slots:
+    void onTimeout();
+
+private:
+    QTimer *m_timer{};
+    CellWidgetConf m_cellConf{};
     QWidget *m_mainWidget{};
     QGridLayout *m_gridLayout{};
     std::vector<CellWidget *> m_cellWidgets{};

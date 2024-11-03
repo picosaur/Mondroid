@@ -11,8 +11,8 @@
 Toolbar::Toolbar(QWidget *parent)
     : QToolBar(parent)
 {
-    m_startBtn = new QPushButton("Start");
-    m_stopBtn = new QPushButton("Stop");
+    m_runInp = new QCheckBox("Run");
+    m_applyBtn = new QPushButton("Apply");
     m_rowsInp = new QSpinBox();
     m_colsInp = new QSpinBox();
     m_hostInp = new QLineEdit();
@@ -49,8 +49,9 @@ Toolbar::Toolbar(QWidget *parent)
     m_rateInp->setMinimum(1);
     m_rateInp->setMaximum(999);
 
-    addWidget(m_startBtn);
-    addWidget(m_stopBtn);
+    // Run, Apply
+    addWidget(m_runInp);
+    addWidget(m_applyBtn);
     // Host Port
     addSeparator();
     addWidget(new QLabel("Host"));
@@ -71,11 +72,16 @@ Toolbar::Toolbar(QWidget *parent)
     addWidget(m_rateInp);
     addWidget(m_fastInp);
 
-    connect(m_startBtn, &QPushButton::clicked, this, &Toolbar::start);
-    connect(m_stopBtn, &QPushButton::clicked, this, &Toolbar::stop);
+    connect(m_runInp, &QCheckBox::stateChanged, this, &Toolbar::runStateChanged);
+    connect(m_applyBtn, &QPushButton::pressed, this, &Toolbar::applyConfRequested);
 }
 
 Toolbar::~Toolbar() {}
+
+int Toolbar::runState() const
+{
+    return int(m_runInp->checkState());
+}
 
 QString Toolbar::host() const
 {

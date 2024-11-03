@@ -19,8 +19,8 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(m_gridWidget);
     addToolBar(m_toolbar);
 
-    connect(m_toolbar, &Toolbar::start, this, &MainWindow::onStart);
-    connect(m_toolbar, &Toolbar::stop, this, &MainWindow::onStop);
+    connect(m_toolbar, &Toolbar::runStateChanged, this, &MainWindow::onRunStateChanged);
+    connect(m_toolbar, &Toolbar::applyConfRequested, this, &MainWindow::onApplyConfRequested);
 
     QSettings settings("settings.ini", QSettings::IniFormat);
     m_toolbar->loadState(settings);
@@ -33,14 +33,21 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::onStart()
+void MainWindow::onRunStateChanged(int state)
+{
+    startStop();
+}
+
+void MainWindow::onApplyConfRequested()
+{
+    startStop();
+}
+
+void MainWindow::startStop()
 {
     m_gridWidget->stop();
     m_gridWidget->init(m_toolbar->cellConf());
-    m_gridWidget->start();
-}
-
-void MainWindow::onStop()
-{
-    m_gridWidget->stop();
+    if (m_toolbar->runState() > 0) {
+        m_gridWidget->start();
+    }
 }

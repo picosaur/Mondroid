@@ -15,13 +15,14 @@ class Toolbar : public QToolBar
     Q_OBJECT
 
 signals:
-    void start();
-    void stop();
+    void runStateChanged(int state);
+    void applyConfRequested();
 
 public:
     Toolbar(QWidget *parent = nullptr);
     ~Toolbar();
 
+    int runState() const;
     QString host() const;
     int port() const;
     int rows() const;
@@ -36,8 +37,8 @@ public:
     void loadState(const QSettings &settings);
 
 private:
-    QPushButton *m_startBtn{};
-    QPushButton *m_stopBtn{};
+    QCheckBox *m_runInp{};
+    QPushButton *m_applyBtn{};
     QLineEdit *m_hostInp{};
     QSpinBox *m_portInp{};
     QSpinBox *m_rowsInp{};

@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QGridLayout>
 #include <QLabel>
+#include <QTimer>
 #include "cellwidget.h"
 #include "device/adbclient.h"
 
@@ -47,23 +48,60 @@ void GridWidget::free()
 
 void GridWidget::start()
 {
-    const auto devList{AdbClient::getDeviceList(m_cellConf.host, m_cellConf.port)};
-    auto it{m_cellWidgets.begin()};
-    for (auto &devId : devList) {
-        (*it)->setDevice(devId);
-        it++;
-        if (it == m_cellWidgets.end()) {
-            break;
-        }
-    }
-    for (auto dw : m_cellWidgets) {
-        dw->start();
-    }
+    m_timer = new QTimer(this);
+    connect(m_timer, &QTimer::timeout, this, &GridWidget::onTimeout);
+    m_timer->start(1000);
 }
 
 void GridWidget::stop()
 {
+    if (m_timer != nullptr) {
+        m_timer->stop();
+        m_timer->deleteLater();
+    }
     for (auto dw : m_cellWidgets) {
         dw->stop();
+    }
+}
+
+QList<QString> GridWidget::devList() const
+{
+    QList<QString> devList;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        if (!(*it)->device().isEmpty()) {
+            devList.append((*it)->device());
+        }
+    }
+    return devList;
+}
+
+void GridWidget::onTimeout()
+{
+    const auto adbDevList{AdbClient::getDeviceList(m_cellConf.host, m_cellConf.port)};
+    QList<QString> myDevList;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        if (adbDevList.contains((*it)->device())) {
+            myDevList.append((*it)->device());
+        } else {
+            (*it)->stop();
+            (*it)->setDevice({});
+        }
+    }
+
+    auto it{m_cellWidgets.begin()};
+    for (auto jt{adbDevList.begin()}; jt != adbDevList.end(); ++jt) {
+        if (myDevList.contains((*jt))) {
+            continue;
+        }
+        for (; it != m_cellWidgets.end(); ++it) {
+            if ((*it)->device().isEmpty()) {
+                (*it)->setDevice((*jt));
+                (*it)->start();
+                break;
+            }
+        }
+        if (it == m_cellWidgets.end()) {
+            break;
+        }
     }
 }

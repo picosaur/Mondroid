@@ -179,13 +179,14 @@ QList<QString> AdbClient::getDeviceList()
         return {};
     }
     QList<QString> list;
-    auto devices{readResponse().split('\n')};
-    for (const QByteArray &dev : devices) {
-        QByteArray info = dev.simplified();
+    const auto response{readResponse()};
+    const auto devices{response.split('\n')};
+    for (const auto &dev : devices) {
+        auto info{dev.simplified()};
         if (info.isEmpty()) {
             continue;
         }
-        const int i{info.indexOf(' ')};
+        const auto i{info.indexOf(' ')};
         auto deviceId{info.left(i)};
         if (deviceId.isEmpty()) {
             continue;
@@ -428,16 +429,17 @@ QByteArray AdbClient::readResponse()
 		len = strtoul((char*)tmp, 0, 16);
 	}
 
-	if(len) {
-		QByteArray res;
-		res.reserve(len + 1);
-		res[0] = res[len] = 0;
-		if(!read(res.data(), len))
-			qDebug() << __FUNCTION__ << "failed: missing response data";
-		return res;
-	}
+    if (len > 0) {
+        QByteArray res;
+        res.resize(len + 1);
+        res[0] = res[len] = 0;
+        if (!read(res.data(), len)) {
+            qDebug() << __FUNCTION__ << "failed: missing response data";
+        }
+        return res;
+    }
 
-	return QByteArray();
+    return QByteArray();
 }
 
 bool AdbClient::send(QByteArray command)

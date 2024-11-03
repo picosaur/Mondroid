@@ -55,12 +55,21 @@ CellWidget::~CellWidget()
 void CellWidget::setDevice(const QString &deviceId)
 {
     m_deviceInp->setText(deviceId);
-    //m_deviceInp->setText(deviceId.split(":").first());
 }
 
 void CellWidget::setConf(const CellWidgetConf &conf)
 {
     m_conf = conf;
+}
+
+QString CellWidget::device() const
+{
+    return m_deviceInp->text();
+}
+
+const CellWidgetConf &CellWidget::conf() const
+{
+    return m_conf;
 }
 
 void CellWidget::start()
@@ -94,6 +103,7 @@ void CellWidget::stop()
     if (m_videoThread) {
         m_videoThread->requestInterruption();
     }
+    m_screen->setPixmap({});
 }
 
 void CellWidget::updateScreen(const QImage &image)
