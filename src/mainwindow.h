@@ -7,6 +7,7 @@ class MainWindow;
 }
 class GridWidget;
 class Toolbar;
+class Statusbar;
 
 class MainWindow : public QMainWindow
 {
@@ -23,6 +24,7 @@ private slots:
 private:
     Ui::MainWindow *ui{};
     Toolbar *m_toolbar{};
+    Statusbar *m_statusbar{};
     GridWidget *m_gridWidget{};
 
     void startStop();

@@ -78,6 +78,10 @@ public:
     QImage fetchScreenPng();
     QImage fetchScreenJpeg();
 
+    void inputTap(const QPoint &p);
+    void inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
+    void inputKeyEvent(int ke);
+
     QByteArray shell(const char *cmd);
     bool sendEvents(AdbEventList events);
     bool sendEvents(int deviceIndex, AdbEventList events);

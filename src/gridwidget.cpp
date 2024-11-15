@@ -23,6 +23,9 @@ void GridWidget::init(const CellWidgetConf &conf)
     for (int i{}; i != m_cellConf.rows; ++i) {
         for (int j{}; j != m_cellConf.cols; ++j) {
             auto cell{new CellWidget(this)};
+            connect(cell, &CellWidget::mouseMove, this, &GridWidget::mouseMove);
+            connect(cell, &CellWidget::mouseTap, this, &GridWidget::mouseTap);
+            connect(cell, &CellWidget::mouseSwipe, this, &GridWidget::mouseSwipe);
             cell->setConf(m_cellConf);
             m_gridLayout->addWidget(cell, i, j);
             m_cellWidgets.push_back(cell);

@@ -281,6 +281,25 @@ QImage AdbClient::fetchScreenJpeg()
     return QImage::fromData(res);
 }
 
+void AdbClient::inputTap(const QPoint &p)
+{
+    const auto s{QString("input tap %1 %2").arg(p.x()).arg(p.y())};
+    shell(s.toLatin1().data());
+}
+
+void AdbClient::inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
+{
+    const auto s{
+        QString("input swipe %1 %2 %3 %4 %5").arg(p1.x()).arg(p1.y()).arg(p2.x()).arg(p2.y()).arg(d)};
+    shell(s.toLatin1().data());
+}
+
+void AdbClient::inputKeyEvent(int ke)
+{
+    const auto s{QString("input keyevent %1").arg(ke)};
+    shell(s.toLatin1().data());
+}
+
 QByteArray AdbClient::shell(const char *cmd)
 {
     if (!connectToDevice()) {

@@ -21,6 +21,11 @@ public:
 
     QList<QString> devList() const;
 
+signals:
+    void mouseMove(QPoint);
+    void mouseTap(QPoint);
+    void mouseSwipe(QPoint, QPoint, qint64);
+
 private slots:
     void onTimeout();
 

@@ -5,6 +5,7 @@
 #include <QSettings>
 #include <QTimer>
 #include "gridwidget.h"
+#include "statusbar.h"
 #include "toolbar.h"
 #include "ui_mainwindow.h"
 
@@ -14,13 +15,18 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	ui->setupUi(this);
     m_toolbar = new Toolbar();
+    m_statusbar = new Statusbar();
     m_gridWidget = new GridWidget();
 
     setCentralWidget(m_gridWidget);
     addToolBar(m_toolbar);
+    setStatusBar(m_statusbar);
 
     connect(m_toolbar, &Toolbar::runStateChanged, this, &MainWindow::onRunStateChanged);
     connect(m_toolbar, &Toolbar::applyConfRequested, this, &MainWindow::onApplyConfRequested);
+    connect(m_gridWidget, &GridWidget::mouseMove, m_statusbar, &Statusbar::onMouseMove);
+    connect(m_gridWidget, &GridWidget::mouseTap, m_statusbar, &Statusbar::onMouseTap);
+    connect(m_gridWidget, &GridWidget::mouseSwipe, m_statusbar, &Statusbar::onMouseSwipe);
 
     QSettings settings("settings.ini", QSettings::IniFormat);
     m_toolbar->loadState(settings);
