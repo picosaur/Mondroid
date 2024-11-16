@@ -29,10 +29,8 @@ struct DeviceInfo
     QString androidVer{};
     bool isArch64{};
     int screenRotation{};
-    int phScreenWidth{};
-    int phScreenHeight{};
-    int ovScreenWidth{};
-    int ovScreenHeight{};
+    QSize phScreenSize{};
+    QSize ovScreenSize{};
 };
 
 struct AdbEvent {
@@ -65,9 +63,9 @@ public:
 
     bool devIsArch64();
     QString devAndroidVer();
-    QPair<int, int> devStableScreenSize();
-    QPair<int, int> devPhysicalScreenSize();
-    QPair<int, int> devOverrideScreenSize();
+    QSize devStableScreenSize();
+    QSize devPhysicalScreenSize();
+    QSize devOverrideScreenSize();
     qint32 devScreenRotation();
     bool devIsScreenAwake();
     QList<QString> getDeviceList();
@@ -77,12 +75,13 @@ public:
     QImage fetchScreenRaw();
     QImage fetchScreenPng();
     QImage fetchScreenJpeg();
+    bool startVideoStream();
 
     void inputTap(const QPoint &p);
     void inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
     void inputKeyEvent(int ke);
 
-    QByteArray shell(const char *cmd);
+    QByteArray shell(const QString &cmd);
     bool sendEvents(AdbEventList events);
     bool sendEvents(int deviceIndex, AdbEventList events);
 
@@ -95,10 +94,11 @@ public:
     qint64 bytesAvailable();
     qint64 isConnected();
 
-    bool read(void *data, qint64 max);
     bool write(const void *data, qint64 max);
     bool write(const QByteArray &data);
-    bool send(QByteArray command);
+    bool send(const QString &scmd);
+
+    bool read(void *data, qint64 max);
     bool readStatus();
     QByteArray readResponse();
     QByteArray readAll();

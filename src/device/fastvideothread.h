@@ -6,8 +6,9 @@
 struct AVFormatContext;
 struct AVStream;
 struct AVCodecContext;
-struct SwsContext;
 struct AVFrame;
+struct AVPacket;
+struct SwsContext;
 
 class AdbClient;
 
@@ -26,10 +27,9 @@ private:
     bool initFrames();
     void exitStream();
 
+    void decodePacket(AVPacket *pkt);
     static int readPacket(void *u, uint8_t *buf, int buf_size);
     static const char *streamError(int errorCode);
-
-    bool connectDevice();
 
     AVFormatContext *m_avFormat{};
     AVStream *m_avStream{};

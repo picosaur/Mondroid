@@ -1,8 +1,11 @@
 // Based on DivvyDroid by Mladen Milinkovic <maxrd2@smoothware.net>
+// https://github.com/maxrd2/DivvyDroid
 // See also
+// https://stackoverflow.com/questions/34511312/how-to-encode-a-video-from-several-images-generated-in-a-c-program-without-wri
 // https://ffmpeg.org/doxygen/trunk/encode_video_8c-example.html
 // https://github.com/apc-llc/moviemaker-cpp/blob/master/src/writer.cpp
-// https://stackoverflow.com/questions/34511312/how-to-encode-a-video-from-several-images-generated-in-a-c-program-without-wri
+// https://github.com/libav/libav/blob/master/doc/examples/decode_video.c
+// https://github.com/spacecowboy/NotePad/blob/c3ec24e1aca5979ef8273d8ddc48cc637518de0b/github_on_emu_started.sh#L54
 
 #include "fastvideothread.h"
 #include "adbclient.h"
@@ -47,6 +50,7 @@ void FastVideoThread::loop()
         // read frame
         if (int ret = av_read_frame(m_avFormat, &pkt); ret < 0) {
             qWarning() << "av_read_frame failed:" << streamError(ret);
+            sleep(1);
             continue;
         }
 
@@ -55,33 +59,8 @@ void FastVideoThread::loop()
             continue;
         }
 
-        // send packet
-        if (int ret = avcodec_send_packet(m_codecCtx, &pkt); ret < 0) {
-            qWarning() << "avcodec_send_packet failed:" << streamError(ret);
-            av_packet_unref(&pkt);
-            continue;
-        }
-
-        // receive frame
-        if (int ret = avcodec_receive_frame(m_codecCtx, m_frame); ret == 0) {
-            sws_scale(m_swsContext,
-                      m_frame->data,
-                      m_frame->linesize,
-                      0,
-                      m_codecCtx->height,
-                      m_rgbFrame->data,
-                      m_rgbFrame->linesize);
-            QImage img(getScaledSize(m_codecCtx->width),
-                       getScaledSize(m_codecCtx->height),
-                       QImage::Format_RGB888);
-            const uint8_t *data = m_rgbFrame->data[0];
-            for (int y = 0; y < img.height(); ++y) {
-                memcpy(img.scanLine(y), data, img.bytesPerLine());
-                data += m_rgbFrame->linesize[0];
-            }
-            emit imageReady(img);
-        }
-
+        // decode packet
+        decodePacket(&pkt);
         av_packet_unref(&pkt);
     }
 
@@ -124,7 +103,7 @@ bool FastVideoThread::initFrames()
         return false;
     }
 
-    // AVFrame
+    // AVFrame RGB
     m_rgbFrame = av_frame_alloc();
     if (m_rgbFrame == nullptr) {
         return false;
@@ -225,12 +204,52 @@ void FastVideoThread::exitStream()
     }
 }
 
+void FastVideoThread::decodePacket(AVPacket *pkt)
+{
+    int ret{};
+
+    // send packet
+    ret = avcodec_send_packet(m_codecCtx, pkt);
+    if (ret < 0) {
+        qWarning() << "Error sending a packet for decoding";
+    }
+
+    while (ret >= 0) {
+        // receiver frame
+        ret = avcodec_receive_frame(m_codecCtx, m_frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            return;
+        } else if (ret < 0) {
+            qWarning() << "Error during decoding";
+            return;
+        }
+        // scale
+        sws_scale(m_swsContext,
+                  m_frame->data,
+                  m_frame->linesize,
+                  0,
+                  m_codecCtx->height,
+                  m_rgbFrame->data,
+                  m_rgbFrame->linesize);
+        // image
+        QImage img(getScaledSize(m_codecCtx->width),
+                   getScaledSize(m_codecCtx->height),
+                   QImage::Format_RGB888);
+        const uint8_t *data = m_rgbFrame->data[0];
+        for (int y = 0; y < img.height(); ++y) {
+            memcpy(img.scanLine(y), data, img.bytesPerLine());
+            data += m_rgbFrame->linesize[0];
+        }
+        emit imageReady(img);
+    }
+}
+
 int FastVideoThread::readPacket(void *u, uint8_t *buf, int buf_size)
 {
     auto *me = reinterpret_cast<FastVideoThread *>(u);
     qint64 len = me->adb()->bytesAvailable();
     while (len == 0) {
-        if (!me->adb()->isConnected() && !me->connectDevice()) {
+        if (!me->adb()->isConnected() && !me->adb()->startVideoStream()) {
             return -1;
         }
         const bool res = me->adb()->waitForReadyRead(50);
@@ -265,20 +284,4 @@ const char *FastVideoThread::streamError(int errorCode)
     static char errorText[1024];
     av_strerror(errorCode, errorText, sizeof(errorText));
     return errorText;
-}
-
-bool FastVideoThread::connectDevice()
-{
-    if (!adb()->connectToDevice()) {
-        return false;
-    }
-
-    QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 -");
-
-    if (!adb()->send(cmd)) {
-        qWarning() << "error executing" << cmd.mid(6);
-        return false;
-    }
-
-    return true;
 }

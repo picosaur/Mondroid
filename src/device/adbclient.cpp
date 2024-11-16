@@ -54,15 +54,8 @@ DeviceInfo AdbClient::getDeviceInfo()
     info.androidVer = devAndroidVer();
     info.isArch64 = devIsArch64();
     info.screenRotation = devScreenRotation();
-
-    const auto ovSize{devOverrideScreenSize()};
-    info.ovScreenWidth = ovSize.first;
-    info.ovScreenHeight = ovSize.second;
-
-    const auto phSize{devPhysicalScreenSize()};
-    info.phScreenWidth = phSize.first;
-    info.phScreenHeight = phSize.second;
-
+    info.ovScreenSize = devOverrideScreenSize();
+    info.phScreenSize = devPhysicalScreenSize();
     return info;
 }
 
@@ -114,7 +107,7 @@ FramebufInfo AdbClient::getFramebufInfo()
 
 bool AdbClient::devIsArch64()
 {
-    const QByteArray abi = shell("getprop ro.product.cpu.abi").simplified();
+    const auto abi = shell("getprop ro.product.cpu.abi").simplified();
     return abi != "armeabi-v7a" && abi != "armeabi" && abi != "x86";
 }
 
@@ -123,9 +116,9 @@ QString AdbClient::devAndroidVer()
     return AdbClient::shell("getprop ro.build.version.release").simplified();
 }
 
-QPair<int, int> AdbClient::devStableScreenSize()
+QSize AdbClient::devStableScreenSize()
 {
-    QByteArray res = shell("dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
+    auto res = shell("dumpsys display | grep -E 'StableDisplayWidth|StableDisplayHeight'");
     QRegExp re("\\b(StableDisplayWidth|StableDisplayHeight)=(\\d+)\\b");
     qint32 i{};
     i = re.indexIn(res, 0);
@@ -135,17 +128,17 @@ QPair<int, int> AdbClient::devStableScreenSize()
     return {w, h};
 }
 
-QPair<int, int> AdbClient::devPhysicalScreenSize()
+QSize AdbClient::devPhysicalScreenSize()
 {
-    QByteArray res = shell("wm size | grep Physical");
+    auto res = shell("wm size | grep Physical");
     res = res.split(':').last().simplified();
     auto arr = res.split('x');
     return {arr.first().toInt(), arr.last().toInt()};
 }
 
-QPair<int, int> AdbClient::devOverrideScreenSize()
+QSize AdbClient::devOverrideScreenSize()
 {
-    QByteArray res = shell("wm size | grep Override");
+    auto res = shell("wm size | grep Override");
     res = res.split(':').last().simplified();
     auto arr = res.split('x');
     return {arr.first().toInt(), arr.last().toInt()};
@@ -158,7 +151,7 @@ int AdbClient::devScreenRotation()
 
 bool AdbClient::devIsScreenAwake()
 {
-    const QByteArray res = shell("dumpsys input_method");
+    const auto res = shell("dumpsys input_method");
     int i = res.indexOf("mScreenOn=");
     if (i != -1) {
         i += 10;
@@ -198,10 +191,9 @@ QList<QString> AdbClient::getDeviceList()
 
 bool AdbClient::connectToDevice()
 {
-    QByteArray cmd("host:transport");
-    cmd.append(":").append(m_deviceId.toLatin1());
-    if (!send(cmd)) {
-        qWarning() << "WARNING: unable to connect to android device";
+    auto scmd{QString("host:transport:%1").arg(m_deviceId)};
+    if (!send(scmd)) {
+        qWarning() << __FUNCTION__ << "unable to connect to android device";
         return false;
     }
     return true;
@@ -209,14 +201,9 @@ bool AdbClient::connectToDevice()
 
 bool AdbClient::forwardTcpPort(int local, int remote)
 {
-    QByteArray cmd;
-    cmd = QByteArray("host-serial:").append(m_deviceId.toLatin1());
-    cmd.append("forward:tcp:")
-        .append(QString::number(local).toLatin1())
-        .append(";tcp:")
-        .append(QString::number(remote).toLatin1());
-    if (!send(cmd)) {
-        qWarning() << "WARNING: unable to forward port to android device";
+    auto scmd{QString("host-serial:%1:forward:%2;%3").arg(m_deviceId).arg(local).arg(remote)};
+    if (!send(scmd)) {
+        qWarning() << __FUNCTION__ << "unable to forward port to android device";
         return false;
     }
     return true;
@@ -228,14 +215,14 @@ QImage AdbClient::fetchScreenRaw()
     fbInfo = getFramebufInfo();
 
     if (!fbInfo.valid) {
-        return QImage();
+        return {};
     }
 
     const int bytesPerLine = fbInfo.width() * fbInfo.bpp() / 8;
     QImage img(fbInfo.width(), fbInfo.height(), fbInfo.format());
     for (int y = 0, h = img.height(); y < h; y++) {
         if (!read(img.scanLine(y), bytesPerLine)) {
-            qDebug() << "FRAMEBUFFER error reading framebuffer frame";
+            qDebug() << __FUNCTION__ << "error reading framebuffer frame";
             return img;
         }
     }
@@ -258,56 +245,66 @@ QImage AdbClient::fetchScreenRaw()
 QImage AdbClient::fetchScreenPng()
 {
     if (!connectToDevice()) {
-        return QImage();
+        return {};
     }
     if (!send("shell:stty raw; screencap -p")) {
-        qWarning() << "FRAMEBUFFER error executing PNG screencap";
-        return QImage();
+        qWarning() << __FUNCTION__ << "error executing PNG screencap";
+        return {};
     }
-    QByteArray res = readAll();
-    return QImage::fromData(res);
+    return QImage::fromData(readAll());
 }
 
 QImage AdbClient::fetchScreenJpeg()
 {
     if (!connectToDevice()) {
-        return QImage();
+        return {};
     }
     if (!send("shell:stty raw; screencap -j")) {
-        qWarning() << "FRAMEBUFFER error executing JPEG screencap";
-        return QImage();
+        qWarning() << __FUNCTION__ << "error executing JPEG screencap";
+        return {};
     }
-    QByteArray res = readAll();
-    return QImage::fromData(res);
+    return QImage::fromData(readAll());
+}
+
+bool AdbClient::startVideoStream()
+{
+    if (!connectToDevice()) {
+        return false;
+    }
+    if (!send("shell:stty raw; screenrecord --output-format=h264 -")) {
+        qWarning() << __FUNCTION__ << "error executing screenrecord";
+        return false;
+    }
+    return true;
 }
 
 void AdbClient::inputTap(const QPoint &p)
 {
     const auto s{QString("input tap %1 %2").arg(p.x()).arg(p.y())};
-    shell(s.toLatin1().data());
+    shell(s);
 }
 
 void AdbClient::inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
 {
     const auto s{
         QString("input swipe %1 %2 %3 %4 %5").arg(p1.x()).arg(p1.y()).arg(p2.x()).arg(p2.y()).arg(d)};
-    shell(s.toLatin1().data());
+    shell(s);
 }
 
 void AdbClient::inputKeyEvent(int ke)
 {
     const auto s{QString("input keyevent %1").arg(ke)};
-    shell(s.toLatin1().data());
+    shell(s);
 }
 
-QByteArray AdbClient::shell(const char *cmd)
+QByteArray AdbClient::shell(const QString &cmd)
 {
     if (!connectToDevice()) {
-        return QByteArray();
+        return {};
     }
-    if (!send(QByteArray("shell:").append(cmd))) {
-        qWarning() << "WARNING: unable to execute shell command:" << cmd;
-        return QByteArray();
+    if (!send(QString("shell:%1").arg(cmd))) {
+        qWarning() << __FUNCTION__ << "unable to execute shell command:" << cmd;
+        return {};
     }
     return readAll();
 }
@@ -320,7 +317,6 @@ bool AdbClient::sendEvents(AdbEventList events)
             return false;
         }
     }
-
     return true;
 }
 
@@ -330,9 +326,7 @@ bool AdbClient::sendEvents(int deviceIndex, AdbEventList events)
     if (!adb.connectToDevice()) {
         return false;
     }
-    if (!adb.send(QByteArray("dev:")
-                      .append("/dev/input/event")
-                      .append(QString::number(deviceIndex).toLatin1()))) {
+    if (!adb.send(QString("dev:/dev/input/event%1").arg(deviceIndex))) {
         qDebug() << __FUNCTION__ << "failed opening device" << deviceIndex;
         return false;
     }
@@ -358,16 +352,24 @@ bool AdbClient::write(const QByteArray &data)
     return write(data.constData(), data.size());
 }
 
+bool AdbClient::send(const QString &scmd)
+{
+    connectToHost();
+    write(QString("%1").arg(scmd.size(), 4, 16, QChar('0')).toLatin1());
+    write(scmd.toLatin1());
+    return readStatus();
+}
+
 bool AdbClient::read(void *data, qint64 max)
 {
     int done = 0;
-    while(max > done) {
-        const int n = m_sock.read((char*)data + done, max - done);
-		if(n < 0) {
+    while (max > done) {
+        const int n = m_sock.read((char *) data + done, max - done);
+        if (n < 0) {
             qDebug() << __FUNCTION__ << "failed";
             return false;
-		}
-        if(n == 0) {
+        }
+        if (n == 0) {
             if (!m_sock.waitForReadyRead()) {
                 return false;
             }
@@ -459,14 +461,6 @@ QByteArray AdbClient::readResponse()
     }
 
     return QByteArray();
-}
-
-bool AdbClient::send(QByteArray command)
-{
-    connectToHost();
-    write(QString("%1").arg(command.size(), 4, 16, QChar('0')).toLatin1());
-    write(command);
-    return readStatus();
 }
 
 void AdbClient::connectToHost()

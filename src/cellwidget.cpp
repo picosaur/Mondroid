@@ -211,7 +211,7 @@ void CellWidget::onKevBtnClicked()
 void CellWidget::onCmdBtnClicked()
 {
     if (m_adb) {
-        m_adb->shell(m_cmdInp->text().toLatin1());
+        m_adb->send(m_cmdInp->text());
     }
 }
 
