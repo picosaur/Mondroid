@@ -278,31 +278,33 @@ bool AdbClient::startVideoStream()
     return true;
 }
 
-void AdbClient::inputTap(const QPoint &p)
+QByteArray AdbClient::inputTap(const QPoint &p)
 {
-    const auto s{QString("input tap %1 %2").arg(p.x()).arg(p.y())};
-    shell(s);
+    return shell(QString("input tap %1 %2").arg(p.x()).arg(p.y()));
 }
 
-void AdbClient::inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
+QByteArray AdbClient::inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
 {
-    const auto s{
-        QString("input swipe %1 %2 %3 %4 %5").arg(p1.x()).arg(p1.y()).arg(p2.x()).arg(p2.y()).arg(d)};
-    shell(s);
+    return shell(
+        QString("input swipe %1 %2 %3 %4 %5").arg(p1.x()).arg(p1.y()).arg(p2.x()).arg(p2.y()).arg(d));
 }
 
-void AdbClient::inputKeyEvent(int ke)
+QByteArray AdbClient::inputKeyEvent(int ke)
 {
-    const auto s{QString("input keyevent %1").arg(ke)};
-    shell(s);
+    return shell(QString("input keyevent %1").arg(ke));
 }
 
 QByteArray AdbClient::shell(const QString &cmd)
 {
+    return sendToDevice(QString("shell:%1").arg(cmd));
+}
+
+QByteArray AdbClient::sendToDevice(const QString &cmd)
+{
     if (!connectToDevice()) {
         return {};
     }
-    if (!send(QString("shell:%1").arg(cmd))) {
+    if (!send(cmd)) {
         qWarning() << __FUNCTION__ << "unable to execute shell command:" << cmd;
         return {};
     }

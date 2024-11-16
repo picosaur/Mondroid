@@ -5,6 +5,7 @@
 
 class QLineEdit;
 class QCheckBox;
+class QSpinBox;
 
 class Statusbar : public QStatusBar
 {
@@ -16,14 +17,18 @@ public:
     void saveState(QSettings &settings) const;
     void loadState(const QSettings &settings);
 
-    bool showDevInp() const;
-    bool showKevInp() const;
-    bool showCmdInp() const;
+    bool showDev() const;
+    bool showKev() const;
+    bool showCmd() const;
+    bool showRes() const;
+    int resSize() const;
 
 signals:
     void showDevChanged(bool);
     void showKevChanged(bool);
     void showCmdChanged(bool);
+    void showResChanged(bool);
+    void resSizeChanged(int);
 
 public slots:
     void onMouseMove(const QPoint &p);
@@ -34,6 +39,8 @@ private slots:
     void onDevFlagStateChanged(int state);
     void onKevFlagStateChanged(int state);
     void onCmdFlagStateChanged(int state);
+    void onResFlagStateChanged(int state);
+    void onResSizeInpValueChanged(int value);
 
 private:
     QLineEdit *m_moveOut{};
@@ -43,6 +50,8 @@ private:
     QCheckBox *m_devFlag{};
     QCheckBox *m_kevFlag{};
     QCheckBox *m_cmdFlag{};
+    QCheckBox *m_resFlag{};
+    QSpinBox *m_resSizeInp{};
 };
 
 #endif // STATUSBAR_H

@@ -28,6 +28,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_statusbar, &Statusbar::showDevChanged, m_gridWidget, &GridWidget::setDevVisible);
     connect(m_statusbar, &Statusbar::showKevChanged, m_gridWidget, &GridWidget::setKevVisible);
     connect(m_statusbar, &Statusbar::showCmdChanged, m_gridWidget, &GridWidget::setCmdVisible);
+    connect(m_statusbar, &Statusbar::showResChanged, m_gridWidget, &GridWidget::setResVisible);
+    connect(m_statusbar, &Statusbar::resSizeChanged, m_gridWidget, &GridWidget::setResOutSize);
 
     connect(m_gridWidget, &GridWidget::mouseMove, m_statusbar, &Statusbar::onMouseMove);
     connect(m_gridWidget, &GridWidget::mouseTap, m_statusbar, &Statusbar::onMouseTap);
@@ -37,9 +39,11 @@ MainWindow::MainWindow(QWidget *parent)
     m_toolbar->loadState(settings);
     m_statusbar->loadState(settings);
 
-    m_gridWidget->setDevVisible(m_statusbar->showDevInp());
-    m_gridWidget->setKevVisible(m_statusbar->showKevInp());
-    m_gridWidget->setCmdVisible(m_statusbar->showCmdInp());
+    m_gridWidget->setDevVisible(m_statusbar->showDev());
+    m_gridWidget->setKevVisible(m_statusbar->showKev());
+    m_gridWidget->setCmdVisible(m_statusbar->showCmd());
+    m_gridWidget->setResVisible(m_statusbar->showRes());
+    m_gridWidget->setResOutSize(m_statusbar->resSize());
 }
 
 MainWindow::~MainWindow()

@@ -11,6 +11,7 @@ class QScrollArea;
 class QLineEdit;
 class QPushButton;
 class QSpinBox;
+class QPlainTextEdit;
 class VideoThread;
 class AdbClient;
 
@@ -94,6 +95,8 @@ public slots:
     void setDevVisible(bool v);
     void setKevVisible(bool v);
     void setCmdVisible(bool v);
+    void setResVisible(bool v);
+    void setResOutSize(int sz);
     void updateScreen(const QImage &image);
 
 private slots:
@@ -128,5 +131,9 @@ private:
     QLabel *m_cmdLabel{};
     QLineEdit *m_cmdInp{};
     QPushButton *m_cmdBtn{};
+
+    QHBoxLayout *m_resLayout{};
+    QLabel *m_resLabel{};
+    QPlainTextEdit *m_resOut{};
 };
 #endif // CELLWIDGET_H

@@ -29,6 +29,8 @@ void GridWidget::init(const CellWidgetConf &conf)
             cell->setDevVisible(m_devVisible);
             cell->setKevVisible(m_kevVisible);
             cell->setCmdVisible(m_cmdVisible);
+            cell->setResVisible(m_resVisible);
+            cell->setResOutSize(m_resOutSize);
             cell->setConf(m_cellConf);
             m_gridLayout->addWidget(cell, i, j);
             m_cellWidgets.push_back(cell);
@@ -102,6 +104,22 @@ void GridWidget::setCmdVisible(bool v)
     m_cmdVisible = v;
     for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
         (*it)->setCmdVisible(m_cmdVisible);
+    }
+}
+
+void GridWidget::setResVisible(bool v)
+{
+    m_resVisible = v;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setResVisible(m_resVisible);
+    }
+}
+
+void GridWidget::setResOutSize(int sz)
+{
+    m_resOutSize = sz;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setResOutSize(m_resOutSize);
     }
 }
 

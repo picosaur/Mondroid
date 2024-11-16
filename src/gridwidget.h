@@ -30,6 +30,8 @@ public slots:
     void setDevVisible(bool v);
     void setKevVisible(bool v);
     void setCmdVisible(bool v);
+    void setResVisible(bool v);
+    void setResOutSize(int sz);
 
 private slots:
     void onTimeout();
@@ -40,7 +42,11 @@ private:
     QWidget *m_mainWidget{};
     QGridLayout *m_gridLayout{};
     std::vector<CellWidget *> m_cellWidgets{};
-    bool m_devVisible{}, m_kevVisible{}, m_cmdVisible{};
+    bool m_devVisible{};
+    bool m_kevVisible{};
+    bool m_cmdVisible{};
+    bool m_resVisible{};
+    int m_resOutSize{};
 };
 
 #endif // SCROLLAREA_H

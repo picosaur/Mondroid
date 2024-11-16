@@ -77,11 +77,12 @@ public:
     QImage fetchScreenJpeg();
     bool startVideoStream();
 
-    void inputTap(const QPoint &p);
-    void inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
-    void inputKeyEvent(int ke);
+    QByteArray inputTap(const QPoint &p);
+    QByteArray inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
+    QByteArray inputKeyEvent(int ke);
 
     QByteArray shell(const QString &cmd);
+    QByteArray sendToDevice(const QString &cmd);
     bool sendEvents(AdbEventList events);
     bool sendEvents(int deviceIndex, AdbEventList events);
 

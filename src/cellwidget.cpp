@@ -3,10 +3,12 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMouseEvent>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QVBoxLayout>
+
 #include "device/adbclient.h"
 #include "device/fastvideothread.h"
 #include "device/videothread.h"
@@ -32,6 +34,10 @@ CellWidget::CellWidget(QWidget *parent)
     m_cmdLabel = new QLabel("Command");
     m_cmdBtn = new QPushButton("Send");
     m_cmdInp = new QLineEdit();
+
+    m_resLayout = new QHBoxLayout();
+    m_resLabel = new QLabel("Output");
+    m_resOut = new QPlainTextEdit();
 
     connect(m_kevBtn, &QPushButton::clicked, this, &CellWidget::onKevBtnClicked);
     connect(m_cmdBtn, &QPushButton::clicked, this, &CellWidget::onCmdBtnClicked);
@@ -63,9 +69,19 @@ CellWidget::CellWidget(QWidget *parent)
     m_cmdLayout->addWidget(m_cmdInp);
     m_cmdLayout->addWidget(m_cmdBtn);
 
+    m_resLabel->setFixedWidth(80.f);
+    QFont font("Monospace");
+    font.setStyleHint(QFont::TypeWriter);
+    m_resOut->setFont(font);
+    m_resOut->setReadOnly(true);
+    setResOutSize(2);
+    m_resLayout->addWidget(m_resLabel);
+    m_resLayout->addWidget(m_resOut);
+
     m_mainLayout->addLayout(m_devLayout);
     m_mainLayout->addLayout(m_kevLayout);
     m_mainLayout->addLayout(m_cmdLayout);
+    m_mainLayout->addLayout(m_resLayout);
     m_mainLayout->addWidget(m_area);
 
     setLayout(m_mainLayout);
@@ -126,7 +142,6 @@ void CellWidget::start()
 
     connect(m_videoThread, &VideoThread::imageReady, this, &CellWidget::updateScreen);
     connect(m_videoThread, &VideoThread::finished, this, &CellWidget::onVideoFinished);
-    connect(m_videoThread, &VideoThread::finished, m_videoThread, &VideoThread::deleteLater);
     m_videoThread->start();
 }
 
@@ -166,6 +181,17 @@ void CellWidget::setCmdVisible(bool v)
     m_cmdBtn->setVisible(v);
 }
 
+void CellWidget::setResVisible(bool v)
+{
+    m_resLabel->setVisible(v);
+    m_resOut->setVisible(v);
+}
+
+void CellWidget::setResOutSize(int sz)
+{
+    m_resOut->setFixedHeight(m_resOut->fontMetrics().lineSpacing() * (sz + 1));
+}
+
 void CellWidget::updateScreen(const QImage &image)
 {
     m_screen->setPixmap(QPixmap::fromImage(image));
@@ -198,20 +224,21 @@ void CellWidget::onMouseSwipe(const QPointF &ps, const QPointF &pe, qint64 d)
 
 void CellWidget::onVideoFinished()
 {
+    m_videoThread->deleteLater();
     m_videoThread = {};
 }
 
 void CellWidget::onKevBtnClicked()
 {
     if (m_adb) {
-        m_adb->inputKeyEvent(m_kevInp->value());
+        m_resOut->setPlainText(m_adb->inputKeyEvent(m_kevInp->value()));
     }
 }
 
 void CellWidget::onCmdBtnClicked()
 {
     if (m_adb) {
-        m_adb->send(m_cmdInp->text());
+        m_resOut->setPlainText(m_adb->sendToDevice(m_cmdInp->text()));
     }
 }
 
