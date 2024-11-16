@@ -57,23 +57,22 @@ void FastVideoThread::loop()
         return;
     }
 
-    AVPacket pkt;
-    pkt.data = nullptr;
-    pkt.size = 0;
-
     while (!isInterruptionRequested()) {
+        AVPacket pkt;
+        pkt.data = nullptr;
+        pkt.size = 0;
         int ret = av_read_frame(m_avFormat, &pkt);
-        bool drainDecoder = ret == AVERROR(EAGAIN) || ret == AVERROR_EOF;
-        if (ret < 0 && !drainDecoder) {
+        bool averr = ret == AVERROR(EAGAIN) || ret == AVERROR_EOF;
+        if (ret < 0 && !averr) {
             qDebug() << "FRAMEBUFFER av_read_frame() failed:" << streamError(ret);
-            break;
+            //break;
         }
-        if (pkt.stream_index == streamIndex || drainDecoder) {
+        if (pkt.stream_index == streamIndex || averr) {
             ret = avcodec_send_packet(m_codecCtx, &pkt);
             if (ret < 0) {
                 if (ret != AVERROR(EAGAIN)) {
                     qDebug() << "FRAMEBUFFER avcodec_send_packet() failed:" << streamError(ret);
-                    break;
+                    //break;
                 }
                 continue;
             }
@@ -107,12 +106,7 @@ void FastVideoThread::loop()
                 emit imageReady(img);
             }
         }
-
         av_packet_unref(&pkt);
-
-        if (drainDecoder) {
-            break;
-        }
     }
 
     exitStream();
@@ -120,47 +114,13 @@ void FastVideoThread::loop()
 
 bool FastVideoThread::initStream()
 {
-    auto read_packet = [](void *u, uint8_t *buf, int buf_size) -> int {
-        auto *me = reinterpret_cast<FastVideoThread *>(u);
-        qint64 len = me->adb()->bytesAvailable();
-        while (len == 0) {
-            if (!me->adb()->isConnected() && !me->connectDevice()) {
-                return -1;
-            }
-            const bool res = me->adb()->waitForReadyRead(50);
-            if (me->isInterruptionRequested()) {
-                return -1;
-            }
-            if (!res) {
-                const QTcpSocket::SocketError err = me->adb()->error();
-                if (err == QTcpSocket::RemoteHostClosedError) {
-                    qDebug() << "FRAMEBUFFER host disconnected " << err;
-                    return -1;
-                }
-                if (err != QTcpSocket::SocketTimeoutError) {
-                    qDebug() << "FRAMEBUFFER read failed:" << err;
-                    return -1;
-                }
-            } else {
-                len = me->adb()->bytesAvailable();
-            }
-        }
-        if (len > buf_size) {
-            len = buf_size;
-        }
-        if (!me->adb()->read(buf, len)) {
-            return -1;
-        }
-        return len;
-    };
-
     const int bufSize = 8192;
     unsigned char *buf = reinterpret_cast<unsigned char *>(av_malloc(bufSize));
 
     // AVFormatContext
     m_avFormat = avformat_alloc_context();
     Q_ASSERT(m_avFormat != nullptr);
-    m_avFormat->pb = avio_alloc_context(buf, bufSize, 0, this, read_packet, nullptr, nullptr);
+    m_avFormat->pb = avio_alloc_context(buf, bufSize, 0, this, readPacket, nullptr, nullptr);
     Q_ASSERT(m_avFormat->pb != nullptr);
 
     int ret{};
@@ -287,6 +247,41 @@ void FastVideoThread::exitStream()
         avformat_close_input(&m_avFormat);
         avio_context_free(&ioContext);
     }
+}
+
+int FastVideoThread::readPacket(void *u, uint8_t *buf, int buf_size)
+{
+    auto *me = reinterpret_cast<FastVideoThread *>(u);
+    qint64 len = me->adb()->bytesAvailable();
+    while (len == 0) {
+        if (!me->adb()->isConnected() && !me->connectDevice()) {
+            return -1;
+        }
+        const bool res = me->adb()->waitForReadyRead(50);
+        if (me->isInterruptionRequested()) {
+            return -1;
+        }
+        if (!res) {
+            const QTcpSocket::SocketError err = me->adb()->error();
+            if (err == QTcpSocket::RemoteHostClosedError) {
+                qDebug() << "FRAMEBUFFER host disconnected " << err;
+                return -1;
+            }
+            if (err != QTcpSocket::SocketTimeoutError) {
+                qDebug() << "FRAMEBUFFER read failed:" << err;
+                return -1;
+            }
+        } else {
+            len = me->adb()->bytesAvailable();
+        }
+    }
+    if (len > buf_size) {
+        len = buf_size;
+    }
+    if (!me->adb()->read(buf, len)) {
+        return -1;
+    }
+    return len;
 }
 
 const char *FastVideoThread::streamError(int errorCode)

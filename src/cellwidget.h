@@ -11,10 +11,11 @@ class QScrollArea;
 class QLineEdit;
 class QPushButton;
 class QSpinBox;
-
 class VideoThread;
 class AdbClient;
 
+// ScreenLabel
+// ----------------------------------------------------------------------------
 class ScreenLabel : public QLabel
 {
     Q_OBJECT
@@ -52,6 +53,8 @@ protected:
     }
 };
 
+// CellWidgetConf
+// ----------------------------------------------------------------------------
 struct CellWidgetConf
 {
     QString host{};
@@ -63,6 +66,8 @@ struct CellWidgetConf
     bool fast{};
 };
 
+// CellWidget
+// ----------------------------------------------------------------------------
 class CellWidget : public QWidget
 {
     Q_OBJECT
@@ -86,11 +91,15 @@ signals:
     void mouseSwipe(QPoint, QPoint, qint64);
 
 public slots:
+    void setDevVisible(bool v);
+    void setKevVisible(bool v);
+    void setCmdVisible(bool v);
     void updateScreen(const QImage &image);
 
 private slots:
     void onVideoFinished();
-    void onKeBtnClicked();
+    void onKevBtnClicked();
+    void onCmdBtnClicked();
     void onMouseMove(const QPointF &p);
     void onMouseTap(const QPointF &p);
     void onMouseSwipe(const QPointF &ps, const QPointF &pe, qint64 d);
@@ -102,13 +111,22 @@ private:
     CellWidgetConf m_conf{};
     AdbClient *m_adb{};
     VideoThread *m_videoThread{};
-
     QVBoxLayout *m_mainLayout{};
-    QHBoxLayout *m_toolLayout{};
     QScrollArea *m_area{};
     ScreenLabel *m_screen{};
-    QLineEdit *m_deviceInp{};
-    QPushButton *m_keBtn{};
-    QSpinBox *m_keInp{};
+
+    QHBoxLayout *m_devLayout{};
+    QLabel *m_devLabel{};
+    QLineEdit *m_devInp{};
+
+    QHBoxLayout *m_kevLayout{};
+    QLabel *m_kevLabel{};
+    QPushButton *m_kevBtn{};
+    QSpinBox *m_kevInp{};
+
+    QHBoxLayout *m_cmdLayout{};
+    QLabel *m_cmdLabel{};
+    QLineEdit *m_cmdInp{};
+    QPushButton *m_cmdBtn{};
 };
 #endif // CELLWIDGET_H

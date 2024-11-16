@@ -1,4 +1,5 @@
 #include "statusbar.h"
+#include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -7,16 +8,60 @@ Statusbar::Statusbar(QWidget *parent)
     : QStatusBar{parent}
 {
     m_moveOut = new QLineEdit();
+    m_moveOut->setFixedWidth(100.f);
     addWidget(new QLabel("Move"));
     addWidget(m_moveOut);
 
     m_tapOut = new QLineEdit();
+    m_tapOut->setFixedWidth(100.f);
     addWidget(new QLabel("Tap"));
     addWidget(m_tapOut);
 
     m_swipeOut = new QLineEdit();
+    m_swipeOut->setFixedWidth(200.f);
     addWidget(new QLabel("Swipe"));
     addWidget(m_swipeOut);
+
+    m_devFlag = new QCheckBox("Dev");
+    m_kevFlag = new QCheckBox("KEv");
+    m_cmdFlag = new QCheckBox("Cmd");
+
+    connect(m_devFlag, &QCheckBox::stateChanged, this, &Statusbar::onDevFlagStateChanged);
+    connect(m_kevFlag, &QCheckBox::stateChanged, this, &Statusbar::onKevFlagStateChanged);
+    connect(m_cmdFlag, &QCheckBox::stateChanged, this, &Statusbar::onCmdFlagStateChanged);
+
+    addWidget(m_devFlag);
+    addWidget(m_kevFlag);
+    addWidget(m_cmdFlag);
+}
+
+void Statusbar::saveState(QSettings &settings) const
+{
+    settings.setValue("statusbar/devFlag", m_devFlag->checkState());
+    settings.setValue("statusbar/kevFlag", m_kevFlag->checkState());
+    settings.setValue("statusbar/cmdFlag", m_cmdFlag->checkState());
+}
+
+void Statusbar::loadState(const QSettings &settings)
+{
+    m_devFlag->setCheckState(settings.value("statusbar/devFlag").value<Qt::CheckState>());
+    m_kevFlag->setCheckState(settings.value("statusbar/kevFlag").value<Qt::CheckState>());
+    m_cmdFlag->setCheckState(settings.value("statusbar/cmdFlag").value<Qt::CheckState>());
+}
+
+bool Statusbar::showDevInp() const
+{
+    return m_devFlag->isChecked();
+}
+
+bool Statusbar::showKevInp() const
+{
+    return m_kevFlag->isChecked();
+}
+
+bool Statusbar::showCmdInp() const
+{
+    return m_cmdFlag->isChecked();
 }
 
 void Statusbar::onMouseMove(const QPoint &p)
@@ -34,4 +79,19 @@ void Statusbar::onMouseSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
     m_swipeOut->setText(QString::number(p1.x()) + " " + QString::number(p1.y()) + " "
                         + QString::number(p2.x()) + " " + QString::number(p2.y()) + " "
                         + QString::number(d));
+}
+
+void Statusbar::onDevFlagStateChanged(int state)
+{
+    emit showDevChanged(m_devFlag->isChecked());
+}
+
+void Statusbar::onKevFlagStateChanged(int state)
+{
+    emit showKevChanged(m_kevFlag->isChecked());
+}
+
+void Statusbar::onCmdFlagStateChanged(int state)
+{
+    emit showCmdChanged(m_cmdFlag->isChecked());
 }

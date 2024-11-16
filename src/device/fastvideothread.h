@@ -25,7 +25,9 @@ private:
     int getStreamIndex();
     bool initFrames();
     void exitStream();
-    const char *streamError(int errorCode);
+
+    static int readPacket(void *u, uint8_t *buf, int buf_size);
+    static const char *streamError(int errorCode);
 
     bool connectDevice();
 

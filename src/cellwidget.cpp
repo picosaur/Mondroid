@@ -15,31 +15,57 @@ CellWidget::CellWidget(QWidget *parent)
     : QWidget(parent)
 {
     m_mainLayout = new QVBoxLayout();
-    m_toolLayout = new QHBoxLayout();
+
     m_area = new QScrollArea();
     m_screen = new ScreenLabel();
-    m_deviceInp = new QLineEdit();
-    m_keInp = new QSpinBox();
-    m_keBtn = new QPushButton("Send");
 
-    connect(m_keBtn, &QPushButton::clicked, this, &CellWidget::onKeBtnClicked);
+    m_devLayout = new QHBoxLayout();
+    m_devLabel = new QLabel("Device");
+    m_devInp = new QLineEdit();
+
+    m_kevLayout = new QHBoxLayout();
+    m_kevLabel = new QLabel("Key Event");
+    m_kevInp = new QSpinBox();
+    m_kevBtn = new QPushButton("Send");
+
+    m_cmdLayout = new QHBoxLayout();
+    m_cmdLabel = new QLabel("Command");
+    m_cmdBtn = new QPushButton("Send");
+    m_cmdInp = new QLineEdit();
+
+    connect(m_kevBtn, &QPushButton::clicked, this, &CellWidget::onKevBtnClicked);
+    connect(m_cmdBtn, &QPushButton::clicked, this, &CellWidget::onCmdBtnClicked);
+
     connect(m_screen, &ScreenLabel::mouseMove, this, &CellWidget::onMouseMove);
     connect(m_screen, &ScreenLabel::mouseTap, this, &CellWidget::onMouseTap);
     connect(m_screen, &ScreenLabel::mouseSwipe, this, &CellWidget::onMouseSwipe);
 
-    m_keInp->setMinimum(0);
-    m_keInp->setMaximum(999);
-    m_deviceInp->setReadOnly(true);
-    m_deviceInp->setAlignment(Qt::AlignRight);
+    //m_deviceInp->setAlignment(Qt::AlignRight);
     m_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_area->setWidget(m_screen);
 
-    m_toolLayout->addWidget(m_keInp);
-    m_toolLayout->addWidget(m_keBtn);
-    m_toolLayout->addWidget(m_deviceInp);
+    m_devInp->setReadOnly(true);
+    m_devLabel->setFixedWidth(80.f);
+    m_devLayout->addWidget(m_devLabel);
+    m_devLayout->addWidget(m_devInp);
 
-    m_mainLayout->addLayout(m_toolLayout);
+    m_kevInp->setMinimum(0);
+    m_kevInp->setMaximum(999);
+    m_kevInp->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_kevLabel->setFixedWidth(80.f);
+    m_kevLayout->addWidget(m_kevLabel);
+    m_kevLayout->addWidget(m_kevInp);
+    m_kevLayout->addWidget(m_kevBtn);
+
+    m_cmdLabel->setFixedWidth(80.f);
+    m_cmdLayout->addWidget(m_cmdLabel);
+    m_cmdLayout->addWidget(m_cmdInp);
+    m_cmdLayout->addWidget(m_cmdBtn);
+
+    m_mainLayout->addLayout(m_devLayout);
+    m_mainLayout->addLayout(m_kevLayout);
+    m_mainLayout->addLayout(m_cmdLayout);
     m_mainLayout->addWidget(m_area);
 
     setLayout(m_mainLayout);
@@ -52,7 +78,7 @@ CellWidget::~CellWidget()
 
 void CellWidget::setDevice(const QString &deviceId)
 {
-    m_deviceInp->setText(deviceId);
+    m_devInp->setText(deviceId);
 }
 
 void CellWidget::setConf(const CellWidgetConf &conf)
@@ -62,7 +88,7 @@ void CellWidget::setConf(const CellWidgetConf &conf)
 
 QString CellWidget::device() const
 {
-    return m_deviceInp->text();
+    return m_devInp->text();
 }
 
 const CellWidgetConf &CellWidget::conf() const
@@ -75,14 +101,14 @@ void CellWidget::start()
     Q_ASSERT(m_adb == nullptr);
     Q_ASSERT(m_videoThread == nullptr);
 
-    const auto s{m_deviceInp->text()};
+    const auto s{m_devInp->text()};
     if (s.isEmpty()) {
         return;
     }
 
     m_adb = new AdbClient();
     m_adb->setHost(m_conf.host, m_conf.port);
-    m_adb->setDevice(m_deviceInp->text());
+    m_adb->setDevice(m_devInp->text());
 
     if (m_conf.fast) {
         auto videoThread = new FastVideoThread();
@@ -94,7 +120,7 @@ void CellWidget::start()
     }
 
     m_videoThread->setHost(m_conf.host, m_conf.port);
-    m_videoThread->setDevice(m_deviceInp->text());
+    m_videoThread->setDevice(m_devInp->text());
     m_videoThread->setImageScalePercent(m_conf.scale);
     m_videoThread->setImageRate(m_conf.rate);
 
@@ -118,6 +144,26 @@ void CellWidget::stop()
         m_videoThread->requestInterruption();
     }
     m_screen->setPixmap({});
+}
+
+void CellWidget::setDevVisible(bool v)
+{
+    m_devInp->setVisible(v);
+    m_devLabel->setVisible(v);
+}
+
+void CellWidget::setKevVisible(bool v)
+{
+    m_kevBtn->setVisible(v);
+    m_kevInp->setVisible(v);
+    m_kevLabel->setVisible(v);
+}
+
+void CellWidget::setCmdVisible(bool v)
+{
+    m_cmdLabel->setVisible(v);
+    m_cmdInp->setVisible(v);
+    m_cmdBtn->setVisible(v);
 }
 
 void CellWidget::updateScreen(const QImage &image)
@@ -155,10 +201,17 @@ void CellWidget::onVideoFinished()
     m_videoThread = {};
 }
 
-void CellWidget::onKeBtnClicked()
+void CellWidget::onKevBtnClicked()
 {
     if (m_adb) {
-        m_adb->inputKeyEvent(m_keInp->value());
+        m_adb->inputKeyEvent(m_kevInp->value());
+    }
+}
+
+void CellWidget::onCmdBtnClicked()
+{
+    if (m_adb) {
+        m_adb->shell(m_cmdInp->text().toLatin1());
     }
 }
 

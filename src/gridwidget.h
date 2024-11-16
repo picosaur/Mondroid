@@ -26,6 +26,11 @@ signals:
     void mouseTap(QPoint);
     void mouseSwipe(QPoint, QPoint, qint64);
 
+public slots:
+    void setDevVisible(bool v);
+    void setKevVisible(bool v);
+    void setCmdVisible(bool v);
+
 private slots:
     void onTimeout();
 
@@ -35,6 +40,7 @@ private:
     QWidget *m_mainWidget{};
     QGridLayout *m_gridLayout{};
     std::vector<CellWidget *> m_cellWidgets{};
+    bool m_devVisible{}, m_kevVisible{}, m_cmdVisible{};
 };
 
 #endif // SCROLLAREA_H

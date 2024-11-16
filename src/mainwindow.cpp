@@ -24,18 +24,29 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_toolbar, &Toolbar::runStateChanged, this, &MainWindow::onRunStateChanged);
     connect(m_toolbar, &Toolbar::applyConfRequested, this, &MainWindow::onApplyConfRequested);
+
+    connect(m_statusbar, &Statusbar::showDevChanged, m_gridWidget, &GridWidget::setDevVisible);
+    connect(m_statusbar, &Statusbar::showKevChanged, m_gridWidget, &GridWidget::setKevVisible);
+    connect(m_statusbar, &Statusbar::showCmdChanged, m_gridWidget, &GridWidget::setCmdVisible);
+
     connect(m_gridWidget, &GridWidget::mouseMove, m_statusbar, &Statusbar::onMouseMove);
     connect(m_gridWidget, &GridWidget::mouseTap, m_statusbar, &Statusbar::onMouseTap);
     connect(m_gridWidget, &GridWidget::mouseSwipe, m_statusbar, &Statusbar::onMouseSwipe);
 
     QSettings settings("settings.ini", QSettings::IniFormat);
     m_toolbar->loadState(settings);
+    m_statusbar->loadState(settings);
+
+    m_gridWidget->setDevVisible(m_statusbar->showDevInp());
+    m_gridWidget->setKevVisible(m_statusbar->showKevInp());
+    m_gridWidget->setCmdVisible(m_statusbar->showCmdInp());
 }
 
 MainWindow::~MainWindow()
 {
     QSettings settings("settings.ini", QSettings::IniFormat);
     m_toolbar->saveState(settings);
+    m_statusbar->saveState(settings);
     delete ui;
 }
 

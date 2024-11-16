@@ -26,6 +26,9 @@ void GridWidget::init(const CellWidgetConf &conf)
             connect(cell, &CellWidget::mouseMove, this, &GridWidget::mouseMove);
             connect(cell, &CellWidget::mouseTap, this, &GridWidget::mouseTap);
             connect(cell, &CellWidget::mouseSwipe, this, &GridWidget::mouseSwipe);
+            cell->setDevVisible(m_devVisible);
+            cell->setKevVisible(m_kevVisible);
+            cell->setCmdVisible(m_cmdVisible);
             cell->setConf(m_cellConf);
             m_gridLayout->addWidget(cell, i, j);
             m_cellWidgets.push_back(cell);
@@ -76,6 +79,30 @@ QList<QString> GridWidget::devList() const
         }
     }
     return devList;
+}
+
+void GridWidget::setDevVisible(bool v)
+{
+    m_devVisible = v;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setDevVisible(m_devVisible);
+    }
+}
+
+void GridWidget::setKevVisible(bool v)
+{
+    m_kevVisible = v;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setKevVisible(m_kevVisible);
+    }
+}
+
+void GridWidget::setCmdVisible(bool v)
+{
+    m_cmdVisible = v;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setCmdVisible(m_cmdVisible);
+    }
 }
 
 void GridWidget::onTimeout()
