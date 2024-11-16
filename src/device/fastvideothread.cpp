@@ -1,22 +1,4 @@
-/*
-   DivvyDroid - Application to screencast and remote control Android devices.
-
-   Copyright (C) 2019 - Mladen Milinkovic <maxrd2@smoothware.net>
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
-
+// Based on DivvyDroid by Mladen Milinkovic <maxrd2@smoothware.net>
 // See also
 // https://ffmpeg.org/doxygen/trunk/encode_video_8c-example.html
 // https://github.com/apc-llc/moviemaker-cpp/blob/master/src/writer.cpp
@@ -57,55 +39,49 @@ void FastVideoThread::loop()
         return;
     }
 
+    AVPacket pkt;
+    pkt.data = nullptr;
+    pkt.size = 0;
+
     while (!isInterruptionRequested()) {
-        AVPacket pkt;
-        pkt.data = nullptr;
-        pkt.size = 0;
-        int ret = av_read_frame(m_avFormat, &pkt);
-        bool averr = ret == AVERROR(EAGAIN) || ret == AVERROR_EOF;
-        if (ret < 0 && !averr) {
-            qDebug() << "FRAMEBUFFER av_read_frame() failed:" << streamError(ret);
-            //break;
+        // read frame
+        if (int ret = av_read_frame(m_avFormat, &pkt); ret < 0) {
+            qWarning() << "av_read_frame failed:" << streamError(ret);
+            continue;
         }
-        if (pkt.stream_index == streamIndex || averr) {
-            ret = avcodec_send_packet(m_codecCtx, &pkt);
-            if (ret < 0) {
-                if (ret != AVERROR(EAGAIN)) {
-                    qDebug() << "FRAMEBUFFER avcodec_send_packet() failed:" << streamError(ret);
-                    //break;
-                }
-                continue;
-            }
 
-            while (ret >= 0) {
-                ret = avcodec_receive_frame(m_codecCtx, m_frame);
-                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-                    break;
-                }
-                if (ret < 0) {
-                    qDebug() << "FRAMEBUFFER avcodec_receive_frame() failed:" << streamError(ret);
-                    break;
-                }
-
-                sws_scale(m_swsContext,
-                          m_frame->data,
-                          m_frame->linesize,
-                          0,
-                          m_codecCtx->height,
-                          m_rgbFrame->data,
-                          m_rgbFrame->linesize);
-
-                QImage img(getScaledSize(m_codecCtx->width),
-                           getScaledSize(m_codecCtx->height),
-                           QImage::Format_RGB888);
-                const uint8_t *data = m_rgbFrame->data[0];
-                for (int y = 0; y < img.height(); ++y) {
-                    memcpy(img.scanLine(y), data, img.bytesPerLine());
-                    data += m_rgbFrame->linesize[0];
-                }
-                emit imageReady(img);
-            }
+        // check stream index
+        if (pkt.stream_index != streamIndex) {
+            continue;
         }
+
+        // send packet
+        if (int ret = avcodec_send_packet(m_codecCtx, &pkt); ret < 0) {
+            qWarning() << "avcodec_send_packet failed:" << streamError(ret);
+            av_packet_unref(&pkt);
+            continue;
+        }
+
+        // receive frame
+        if (int ret = avcodec_receive_frame(m_codecCtx, m_frame); ret == 0) {
+            sws_scale(m_swsContext,
+                      m_frame->data,
+                      m_frame->linesize,
+                      0,
+                      m_codecCtx->height,
+                      m_rgbFrame->data,
+                      m_rgbFrame->linesize);
+            QImage img(getScaledSize(m_codecCtx->width),
+                       getScaledSize(m_codecCtx->height),
+                       QImage::Format_RGB888);
+            const uint8_t *data = m_rgbFrame->data[0];
+            for (int y = 0; y < img.height(); ++y) {
+                memcpy(img.scanLine(y), data, img.bytesPerLine());
+                data += m_rgbFrame->linesize[0];
+            }
+            emit imageReady(img);
+        }
+
         av_packet_unref(&pkt);
     }
 
@@ -300,7 +276,7 @@ bool FastVideoThread::connectDevice()
     QByteArray cmd("shell:stty raw; screenrecord --output-format=h264 -");
 
     if (!adb()->send(cmd)) {
-        qWarning() << "FRAMEBUFFER error executing" << cmd.mid(6);
+        qWarning() << "error executing" << cmd.mid(6);
         return false;
     }
 
