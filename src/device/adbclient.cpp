@@ -266,12 +266,14 @@ QImage AdbClient::fetchScreenJpeg()
     return QImage::fromData(readAll());
 }
 
-bool AdbClient::startVideoStream()
+bool AdbClient::startVideoStream(int timeLimit)
 {
     if (!connectToDevice()) {
         return false;
     }
-    if (!send("shell:stty raw; screenrecord --output-format=h264 -")) {
+    auto scmd{QString("shell:stty raw; screenrecord --output-format=h264 --time-limit=%1 -")
+                  .arg(timeLimit)};
+    if (!send(scmd)) {
         qWarning() << __FUNCTION__ << "error executing screenrecord";
         return false;
     }
@@ -493,6 +495,11 @@ void AdbClient::disconnectFromHost()
 void AdbClient::close()
 {
     return m_sock.close();
+}
+
+bool AdbClient::waitForConnected(int msecs)
+{
+    return m_sock.waitForConnected(msecs);
 }
 
 bool AdbClient::waitForDisconnected(int msecs)

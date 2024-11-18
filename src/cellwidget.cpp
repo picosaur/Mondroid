@@ -148,9 +148,9 @@ void CellWidget::start()
 void CellWidget::stop()
 {
     if (m_adb) {
-        m_adb->disconnectFromHost();
-        m_adb->waitForDisconnected();
-        m_adb->close();
+        if (m_adb->isConnected()) {
+            m_adb->close();
+        }
         m_adb->deleteLater();
         m_adb = {};
     }

@@ -17,12 +17,9 @@ void VideoThread::run()
     m_adb = new AdbClient();
     m_adb->setHost(m_host, m_port);
     m_adb->setDevice(m_deviceId);
-    m_devInfo = m_adb->getDeviceInfo();
 
     loop();
 
-    m_adb->disconnectFromHost();
-    m_adb->waitForDisconnected();
     m_adb->close();
     m_adb->deleteLater();
     m_adb = {};

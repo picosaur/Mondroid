@@ -49,8 +49,8 @@ void FastVideoThread::loop()
     while (!isInterruptionRequested()) {
         // read frame
         if (int ret = av_read_frame(m_avFormat, &pkt); ret < 0) {
-            qWarning() << "av_read_frame failed:" << streamError(ret);
-            sleep(1);
+            qWarning() << __FUNCTION__ << "av_read_frame failed:" << streamError(ret);
+            msleep(1000);
             continue;
         }
 
@@ -80,14 +80,14 @@ bool FastVideoThread::initStream()
 
     int ret{};
     if ((ret = avformat_open_input(&m_avFormat, nullptr, nullptr, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't open input:" << streamError(ret);
+        qDebug() << __FUNCTION__ << "can't open input:" << streamError(ret);
         return false;
     }
 
     m_avFormat->probesize = 32;
     //	m_avFormat->max_analyze_duration = 0;
     if ((ret = avformat_find_stream_info(m_avFormat, nullptr)) < 0) {
-        qDebug() << "FRAMEBUFFER can't find stream information:" << streamError(ret);
+        qDebug() << __FUNCTION__ << "can't find stream information:" << streamError(ret);
         return false;
     }
     av_dump_format(m_avFormat, 0, "", 0);
@@ -146,18 +146,19 @@ int FastVideoThread::getStreamIndex()
 
         const AVCodec *dec = avcodec_find_decoder(m_avStream->codecpar->codec_id);
         if (!dec) {
-            qDebug() << "FRAMEBUFFER can't find decoder for stream" << i;
+            qDebug() << __FUNCTION__ << "can't find decoder for stream" << i;
             continue;
         }
 
         m_codecCtx = avcodec_alloc_context3(dec);
         if (!m_codecCtx) {
-            qDebug() << "FRAMEBUFFER can't allocate the decoder context for stream" << i;
+            qDebug() << __FUNCTION__ << "can't allocate the decoder context for stream" << i;
             continue;
         }
         ret = avcodec_parameters_to_context(m_codecCtx, m_avStream->codecpar);
         if (ret < 0) {
-            qDebug() << "FRAMEBUFFER failed to copy decoder parameters to input "
+            qDebug() << __FUNCTION__
+                     << "failed to copy decoder parameters to input "
                         "decoder context "
                         "for stream"
                      << i << streamError(ret);
@@ -170,7 +171,8 @@ int FastVideoThread::getStreamIndex()
         }
         ret = avcodec_open2(m_codecCtx, dec, nullptr);
         if (ret < 0) {
-            qDebug() << "FRAMEBUFFER failed to open decoder for stream" << i << streamError(ret);
+            qDebug() << __FUNCTION__ << "failed to open decoder for stream" << i
+                     << streamError(ret);
             avcodec_free_context(&m_codecCtx);
             continue;
         }
@@ -211,7 +213,7 @@ void FastVideoThread::decodePacket(AVPacket *pkt)
     // send packet
     ret = avcodec_send_packet(m_codecCtx, pkt);
     if (ret < 0) {
-        qWarning() << "Error sending a packet for decoding";
+        qWarning() << __FUNCTION__ << "Error sending a packet for decoding";
     }
 
     while (ret >= 0) {
@@ -220,7 +222,7 @@ void FastVideoThread::decodePacket(AVPacket *pkt)
         if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
             return;
         } else if (ret < 0) {
-            qWarning() << "Error during decoding";
+            qWarning() << __FUNCTION__ << "Error during decoding";
             return;
         }
         // scale
@@ -246,35 +248,41 @@ void FastVideoThread::decodePacket(AVPacket *pkt)
 
 int FastVideoThread::readPacket(void *u, uint8_t *buf, int buf_size)
 {
-    auto *me = reinterpret_cast<FastVideoThread *>(u);
-    qint64 len = me->adb()->bytesAvailable();
+    auto *self = reinterpret_cast<FastVideoThread *>(u);
+
+    if (!self->m_streamFlag) {
+        self->adb()->startVideoStream(30);
+        self->m_streamFlag = true;
+    }
+
+    qint64 len{};
     while (len == 0) {
-        if (!me->adb()->isConnected() && !me->adb()->startVideoStream()) {
-            return -1;
+        if (self->isInterruptionRequested()) {
+            len = -1;
+            break;
         }
-        const bool res = me->adb()->waitForReadyRead(50);
-        if (me->isInterruptionRequested()) {
-            return -1;
+        len = self->adb()->bytesAvailable();
+        if (len > 0) {
+            break;
         }
-        if (!res) {
-            const QTcpSocket::SocketError err = me->adb()->error();
-            if (err == QTcpSocket::RemoteHostClosedError) {
-                qDebug() << "FRAMEBUFFER host disconnected " << err;
-                return -1;
-            }
-            if (err != QTcpSocket::SocketTimeoutError) {
-                qDebug() << "FRAMEBUFFER read failed:" << err;
-                return -1;
-            }
-        } else {
-            len = me->adb()->bytesAvailable();
+        if (self->adb()->waitForReadyRead(50)) {
+            len = self->adb()->bytesAvailable();
+            break;
+        }
+        if (!self->adb()->isConnected()) {
+            self->m_streamFlag = {};
+            break;
+        }
+        if (auto err = self->adb()->error(); err != QTcpSocket::SocketTimeoutError) {
+            qWarning() << __FUNCTION__ << "read failed: " << err;
+            break;
         }
     }
     if (len > buf_size) {
         len = buf_size;
     }
-    if (!me->adb()->read(buf, len)) {
-        return -1;
+    if (len > 0 && !self->adb()->read(buf, len)) {
+        len = -1;
     }
     return len;
 }

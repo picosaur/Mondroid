@@ -1,6 +1,5 @@
 #ifndef FASTVIDEOTHREAD_H
 #define FASTVIDEOTHREAD_H
-
 #include "videothread.h"
 
 struct AVFormatContext;
@@ -37,6 +36,7 @@ private:
     SwsContext *m_swsContext{};
     AVFrame *m_frame{};
     AVFrame *m_rgbFrame{};
+    bool m_streamFlag{};
 };
 
 #endif // FASTVIDEOTHREAD_H

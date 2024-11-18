@@ -75,7 +75,7 @@ public:
     QImage fetchScreenRaw();
     QImage fetchScreenPng();
     QImage fetchScreenJpeg();
-    bool startVideoStream();
+    bool startVideoStream(int timeLimit = 60);
 
     QByteArray inputTap(const QPoint &p);
     QByteArray inputSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
@@ -89,6 +89,7 @@ public:
     void connectToHost();
     void disconnectFromHost();
     void close();
+    bool waitForConnected(int msecs = -1);
     bool waitForDisconnected(int msecs = -1);
     bool waitForReadyRead(int msecs = -1);
     QTcpSocket::SocketError error();
