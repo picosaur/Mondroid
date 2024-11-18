@@ -46,6 +46,9 @@ CellWidget::CellWidget(QWidget *parent)
     connect(m_screen, &ScreenLabel::mouseTap, this, &CellWidget::onMouseTap);
     connect(m_screen, &ScreenLabel::mouseSwipe, this, &CellWidget::onMouseSwipe);
 
+    QFont monoFont("Monospace");
+    monoFont.setStyleHint(QFont::TypeWriter);
+
     //m_deviceInp->setAlignment(Qt::AlignRight);
     m_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -65,14 +68,13 @@ CellWidget::CellWidget(QWidget *parent)
     m_kevLayout->addWidget(m_kevBtn);
 
     m_cmdLabel->setFixedWidth(80.f);
+    m_cmdInp->setFont(monoFont);
     m_cmdLayout->addWidget(m_cmdLabel);
     m_cmdLayout->addWidget(m_cmdInp);
     m_cmdLayout->addWidget(m_cmdBtn);
 
     m_resLabel->setFixedWidth(80.f);
-    QFont font("Monospace");
-    font.setStyleHint(QFont::TypeWriter);
-    m_resOut->setFont(font);
+    m_resOut->setFont(monoFont);
     m_resOut->setReadOnly(true);
     setResOutSize(2);
     m_resLayout->addWidget(m_resLabel);

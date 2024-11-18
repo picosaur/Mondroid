@@ -1,21 +1,5 @@
-/*
-   DivvyDroid - Application to screencast and remote control Android devices.
-
-   Copyright (C) 2019 - Mladen Milinkovic <maxrd2@smoothware.net>
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+// Based on DivvyDroid by Mladen Milinkovic <maxrd2@smoothware.net>
+// https://github.com/maxrd2/DivvyDroid
 #include "adbclient.h"
 #include <QDebug>
 #include <QElapsedTimer>
@@ -68,11 +52,11 @@ FramebufInfo AdbClient::getFramebufInfo()
     }
 
     if (!send("framebuffer:")) {
-        qWarning() << "FRAMEBUFFER unable to connect to framebuffer";
+        qWarning() << __FUNCTION__ << "unable to connect to framebuffer";
         return {};
     }
     if (!read(&fbInfo.version, sizeof(fbInfo.version))) {
-        qDebug() << "FRAMEBUFFER error reading framebuffer version";
+        qDebug() << __FUNCTION__ << "error reading framebuffer version";
         return {};
     }
 
@@ -81,7 +65,7 @@ FramebufInfo AdbClient::getFramebufInfo()
     case 16: // version 0
         res = read(&fbInfo.v0, sizeof(fbInfo.v0));
         if (!write("0", 1)) {
-            qDebug() << "FRAMEBUFFER error writing v0 request";
+            qDebug() << __FUNCTION__ << "error writing v0 request";
             return {};
         }
         break;
@@ -97,7 +81,7 @@ FramebufInfo AdbClient::getFramebufInfo()
         break;
     }
     if (!res) {
-        qDebug() << "FRAMEBUFFER error reading framebuffer info";
+        qDebug() << __FUNCTION__ << "error reading framebuffer info";
         return {};
     }
 
