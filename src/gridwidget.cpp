@@ -8,67 +8,68 @@
 
 GridWidget::GridWidget(QWidget *parent)
 {
-    setLayout(new QVBoxLayout());
+    auto mainLayout = new QVBoxLayout();
+    setLayout(mainLayout);
 }
 
 GridWidget::~GridWidget() {}
 
-void GridWidget::init(const CellWidgetConf &conf)
+void GridWidget::initGrid(const GridConf &conf)
 {
-    m_cellConf = conf;
+    /*
+    if (conf.isEqualExceptScale(m_gridConf)) {
+        m_gridConf = conf;
+        for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+            (*it)->setImageScale(m_gridConf.scale);
+        }
+        return;
+    }*/
 
-    free();
+    auto currDevList = devList();
 
-    m_gridLayout = new QGridLayout();
-    for (int i{}; i != m_cellConf.rows; ++i) {
-        for (int j{}; j != m_cellConf.cols; ++j) {
-            auto cell{new CellWidget(this)};
+    freeGrid();
+    m_gridConf = conf;
+    auto gridLayout = new QGridLayout();
+    for (int i{}, k{}; i != m_gridConf.rows; ++i) {
+        for (int j{}; j != m_gridConf.cols; ++j, ++k) {
+            auto cell = new CellWidget();
+            cell->setGridConf(m_gridConf);
+            cell->setCellConf(m_cellConf);
+            if (!currDevList.empty()) {
+                cell->setDevice(currDevList.takeFirst());
+                cell->start();
+            }
             connect(cell, &CellWidget::mouseMove, this, &GridWidget::mouseMove);
             connect(cell, &CellWidget::mouseTap, this, &GridWidget::mouseTap);
             connect(cell, &CellWidget::mouseSwipe, this, &GridWidget::mouseSwipe);
-            cell->setDevVisible(m_devVisible);
-            cell->setKevVisible(m_kevVisible);
-            cell->setCmdVisible(m_cmdVisible);
-            cell->setResVisible(m_resVisible);
-            cell->setResOutSize(m_resOutSize);
-            cell->setConf(m_cellConf);
-            m_gridLayout->addWidget(cell, i, j);
+            gridLayout->addWidget(cell, i, j);
             m_cellWidgets.push_back(cell);
         }
     }
-    m_mainWidget = new QWidget();
-    m_mainWidget->setLayout(m_gridLayout);
-    layout()->addWidget(m_mainWidget);
+    auto mainWidget = new QWidget();
+    mainWidget->setLayout(gridLayout);
+    layout()->addWidget(mainWidget);
+
+    setDiscover(m_gridConf.discover);
 }
 
-void GridWidget::free()
+void GridWidget::freeGrid()
 {
-    if (m_mainWidget) {
-        layout()->removeWidget(m_mainWidget);
-        m_mainWidget->deleteLater();
-        m_gridLayout->deleteLater();
-        for (auto &w : m_cellWidgets) {
-            w->deleteLater();
+    if (layout() != nullptr) {
+        QLayoutItem *item{};
+        while ((item = layout()->takeAt(0)) != nullptr) {
+            delete item->widget();
+            delete item;
         }
-        m_cellWidgets.clear();
     }
+    m_cellWidgets.clear();
 }
 
-void GridWidget::start()
+void GridWidget::setCellConf(const CellConf &conf)
 {
-    m_timer = new QTimer(this);
-    connect(m_timer, &QTimer::timeout, this, &GridWidget::onTimeout);
-    m_timer->start(1000);
-}
-
-void GridWidget::stop()
-{
-    if (m_timer != nullptr) {
-        m_timer->stop();
-        m_timer->deleteLater();
-    }
-    for (auto dw : m_cellWidgets) {
-        dw->stop();
+    m_cellConf = conf;
+    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
+        (*it)->setCellConf(m_cellConf);
     }
 }
 
@@ -83,53 +84,25 @@ QList<QString> GridWidget::devList() const
     return devList;
 }
 
-void GridWidget::setDevVisible(bool v)
+void GridWidget::setDiscover(bool v)
 {
-    m_devVisible = v;
-    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
-        (*it)->setDevVisible(m_devVisible);
+    if (m_timer) {
+        m_timer->stop();
+    }
+    if (v) {
+        m_timer = new QTimer();
+        connect(m_timer, &QTimer::timeout, this, &GridWidget::discoverDevices);
+        m_timer->start(1000);
     }
 }
 
-void GridWidget::setKevVisible(bool v)
+void GridWidget::discoverDevices()
 {
-    m_kevVisible = v;
-    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
-        (*it)->setKevVisible(m_kevVisible);
-    }
-}
-
-void GridWidget::setCmdVisible(bool v)
-{
-    m_cmdVisible = v;
-    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
-        (*it)->setCmdVisible(m_cmdVisible);
-    }
-}
-
-void GridWidget::setResVisible(bool v)
-{
-    m_resVisible = v;
-    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
-        (*it)->setResVisible(m_resVisible);
-    }
-}
-
-void GridWidget::setResOutSize(int sz)
-{
-    m_resOutSize = sz;
-    for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
-        (*it)->setResOutSize(m_resOutSize);
-    }
-}
-
-void GridWidget::onTimeout()
-{
-    const auto adbDevList{AdbClient::getDeviceList(m_cellConf.host, m_cellConf.port)};
-    QList<QString> myDevList;
+    const auto adbDevList{AdbClient::getDeviceList(m_gridConf.host, m_gridConf.port)};
+    QList<QString> currDevList;
     for (auto it{m_cellWidgets.begin()}; it != m_cellWidgets.end(); ++it) {
         if (adbDevList.contains((*it)->device())) {
-            myDevList.append((*it)->device());
+            currDevList.append((*it)->device());
         } else {
             (*it)->stop();
             (*it)->setDevice({});
@@ -138,7 +111,7 @@ void GridWidget::onTimeout()
 
     auto it{m_cellWidgets.begin()};
     for (auto jt{adbDevList.begin()}; jt != adbDevList.end(); ++jt) {
-        if (myDevList.contains((*jt))) {
+        if (currDevList.contains((*jt))) {
             continue;
         }
         for (; it != m_cellWidgets.end(); ++it) {

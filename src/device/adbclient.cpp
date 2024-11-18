@@ -97,7 +97,7 @@ bool AdbClient::devIsArch64()
 
 QString AdbClient::devAndroidVer()
 {
-    return AdbClient::shell("getprop ro.build.version.release").simplified();
+    return shell("getprop ro.build.version.release").simplified();
 }
 
 QSize AdbClient::devStableScreenSize()
@@ -301,7 +301,7 @@ bool AdbClient::sendEvents(AdbEventList events)
 {
     for (const AdbEvent &evt : events) {
         if (!write(&evt, sizeof(AdbEvent))) {
-            qDebug() << __FUNCTION__ << "failed sending event";
+            qWarning() << __FUNCTION__ << "failed sending event";
             return false;
         }
     }
@@ -315,7 +315,7 @@ bool AdbClient::sendEvents(int deviceIndex, AdbEventList events)
         return false;
     }
     if (!adb.send(QString("dev:/dev/input/event%1").arg(deviceIndex))) {
-        qDebug() << __FUNCTION__ << "failed opening device" << deviceIndex;
+        qWarning() << __FUNCTION__ << "failed opening device" << deviceIndex;
         return false;
     }
     return adb.sendEvents(events);
@@ -327,7 +327,7 @@ bool AdbClient::write(const void *data, qint64 max)
     while(max > done) {
         int n = m_sock.write((char*)data + done, max - done);
 		if(n <= 0) {
-			qDebug() << __FUNCTION__ << "failed";
+            qWarning() << __FUNCTION__ << "failed";
             return false;
 		}
         done += n;
@@ -354,7 +354,7 @@ bool AdbClient::read(void *data, qint64 max)
     while (max > done) {
         const int n = m_sock.read((char *) data + done, max - done);
         if (n < 0) {
-            qDebug() << __FUNCTION__ << "failed";
+            qWarning() << __FUNCTION__ << "failed";
             return false;
         }
         if (n == 0) {
@@ -511,10 +511,14 @@ qint64 AdbClient::isConnected()
     return m_sock.state() != QTcpSocket::UnconnectedState;
 }
 
-QList<QString> AdbClient::getDeviceList(const QString &host, int port)
+QList<QString> AdbClient::getDeviceList(const QString &host, int port, int timeout)
 {
     const auto adb{new AdbClient()};
     adb->setHost(host, port);
+    adb->connectToHost();
+    if (!adb->waitForConnected(timeout)) {
+        return {};
+    }
     auto devList{adb->getDeviceList()};
     adb->deleteLater();
     return devList;

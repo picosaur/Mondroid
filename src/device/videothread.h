@@ -1,5 +1,7 @@
 #ifndef VIDEOTHREAD_H
 #define VIDEOTHREAD_H
+#include <QMutex>
+#include <QPointer>
 #include <QThread>
 #include "device/adbclient.h"
 
@@ -19,10 +21,10 @@ public:
     void setHost(const QString &host, int port);
     void setDevice(const QString &deviceId);
     void setImageFormat(ImageFormat mode);
-    void setImageScale(double scale);
-    void setImageScalePercent(double p);
     void setImageRate(double fps);
 
+    void setImageScale(double scale);
+    void setImageScalePercent(int p);
     int getScaledSize(int value) const;
 
 signals:
@@ -43,8 +45,9 @@ private:
     double m_imageScale{1.0};
     unsigned long m_imageRateMs{100};
 
-    AdbClient *m_adb{};
+    QPointer<AdbClient> m_adb{};
     DeviceInfo m_devInfo{};
+    mutable QMutex m_mutex;
 };
 
 #endif // VIDEOTHREAD_H

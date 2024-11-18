@@ -2,6 +2,7 @@
 #define STATUSBAR_H
 #include <QSettings>
 #include <QStatusBar>
+#include "cellwidget.h"
 
 class QLineEdit;
 class QCheckBox;
@@ -23,24 +24,15 @@ public:
     bool showRes() const;
     int resSize() const;
 
+    CellConf cellConf() const;
+
 signals:
-    void showDevChanged(bool);
-    void showKevChanged(bool);
-    void showCmdChanged(bool);
-    void showResChanged(bool);
-    void resSizeChanged(int);
+    void confChanged();
 
 public slots:
     void onMouseMove(const QPoint &p);
     void onMouseTap(const QPoint &p);
     void onMouseSwipe(const QPoint &p1, const QPoint &p2, qint64 d);
-
-private slots:
-    void onDevFlagStateChanged(int state);
-    void onKevFlagStateChanged(int state);
-    void onCmdFlagStateChanged(int state);
-    void onResFlagStateChanged(int state);
-    void onResSizeInpValueChanged(int value);
 
 private:
     QLineEdit *m_moveOut{};

@@ -33,18 +33,17 @@ Statusbar::Statusbar(QWidget *parent)
     m_resSizeInp->setMaximum(99);
     m_resSizeInp->setPrefix("L:");
 
-    connect(m_devFlag, &QCheckBox::stateChanged, this, &Statusbar::onDevFlagStateChanged);
-    connect(m_kevFlag, &QCheckBox::stateChanged, this, &Statusbar::onKevFlagStateChanged);
-    connect(m_cmdFlag, &QCheckBox::stateChanged, this, &Statusbar::onCmdFlagStateChanged);
-    connect(m_resFlag, &QCheckBox::stateChanged, this, &Statusbar::onResFlagStateChanged);
-    //connect(m_resSizeInp, &QSpinBox::valueChanged, this, &Statusbar::onResSizeInpValueChanged);
-    connect(m_resSizeInp, SIGNAL(valueChanged(int)), this, SLOT(onResSizeInpValueChanged(int)));
-
     addWidget(m_devFlag);
     addWidget(m_kevFlag);
     addWidget(m_cmdFlag);
     addWidget(m_resFlag);
     addWidget(m_resSizeInp);
+
+    connect(m_devFlag, &QCheckBox::stateChanged, this, &Statusbar::confChanged);
+    connect(m_kevFlag, &QCheckBox::stateChanged, this, &Statusbar::confChanged);
+    connect(m_cmdFlag, &QCheckBox::stateChanged, this, &Statusbar::confChanged);
+    connect(m_resFlag, &QCheckBox::stateChanged, this, &Statusbar::confChanged);
+    connect(m_resSizeInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
 }
 
 void Statusbar::saveState(QSettings &settings) const
@@ -90,6 +89,17 @@ int Statusbar::resSize() const
     return m_resSizeInp->value();
 }
 
+CellConf Statusbar::cellConf() const
+{
+    CellConf conf;
+    conf.devVisible = showDev();
+    conf.kevVisible = showKev();
+    conf.cmdVisible = showCmd();
+    conf.resVisible = showRes();
+    conf.resOutSize = resSize();
+    return conf;
+}
+
 void Statusbar::onMouseMove(const QPoint &p)
 {
     m_moveOut->setText(QString::number(p.x()) + " " + QString::number(p.y()));
@@ -105,29 +115,4 @@ void Statusbar::onMouseSwipe(const QPoint &p1, const QPoint &p2, qint64 d)
     m_swipeOut->setText(QString::number(p1.x()) + " " + QString::number(p1.y()) + " "
                         + QString::number(p2.x()) + " " + QString::number(p2.y()) + " "
                         + QString::number(d));
-}
-
-void Statusbar::onDevFlagStateChanged(int state)
-{
-    emit showDevChanged(m_devFlag->isChecked());
-}
-
-void Statusbar::onKevFlagStateChanged(int state)
-{
-    emit showKevChanged(m_kevFlag->isChecked());
-}
-
-void Statusbar::onCmdFlagStateChanged(int state)
-{
-    emit showCmdChanged(m_cmdFlag->isChecked());
-}
-
-void Statusbar::onResFlagStateChanged(int state)
-{
-    emit showResChanged(m_resFlag->isChecked());
-}
-
-void Statusbar::onResSizeInpValueChanged(int value)
-{
-    emit resSizeChanged(m_resSizeInp->value());
 }

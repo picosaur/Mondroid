@@ -21,8 +21,7 @@ void VideoThread::run()
     loop();
 
     m_adb->close();
-    m_adb->deleteLater();
-    m_adb = {};
+    m_adb.clear();
 }
 
 void VideoThread::loop()
@@ -66,23 +65,26 @@ void VideoThread::setImageFormat(ImageFormat format)
     m_imageFormat = format;
 }
 
-void VideoThread::setImageScale(double scale)
-{
-    m_imageScale = scale;
-}
-
-void VideoThread::setImageScalePercent(double p)
-{
-    m_imageScale = p / 100.0;
-}
-
 void VideoThread::setImageRate(double fps)
 {
     m_imageRateMs = 1000 / fps;
 }
 
+void VideoThread::setImageScale(double scale)
+{
+    QMutexLocker lk(&m_mutex);
+    m_imageScale = scale;
+}
+
+void VideoThread::setImageScalePercent(int p)
+{
+    QMutexLocker lk(&m_mutex);
+    m_imageScale = double(p) / 100.0;
+}
+
 int VideoThread::getScaledSize(int value) const
 {
+    QMutexLocker lk(&m_mutex);
     return int(double(value) * m_imageScale);
 }
 

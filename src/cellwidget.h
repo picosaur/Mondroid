@@ -54,17 +54,36 @@ protected:
     }
 };
 
-// CellWidgetConf
+// GridConf
 // ----------------------------------------------------------------------------
-struct CellWidgetConf
+struct GridConf
 {
+    bool discover{};
     QString host{};
     int port{};
     int rows{};
     int cols{};
-    int scale{};
     int rate{};
     bool fast{};
+    int scale{};
+
+    bool isEqualExceptScale(const GridConf &other) const
+    {
+        return this->discover == other.discover && this->port == other.port
+               && this->rows == other.rows && this->cols == other.cols && this->rate == other.rate
+               && this->fast == other.fast && this->scale != other.scale;
+    }
+};
+
+// CellConf
+// ----------------------------------------------------------------------------
+struct CellConf
+{
+    bool devVisible{};
+    bool kevVisible{};
+    bool cmdVisible{};
+    bool resVisible{};
+    int resOutSize{};
 };
 
 // CellWidget
@@ -78,10 +97,15 @@ public:
     ~CellWidget();
 
     void setDevice(const QString &deviceId);
-    void setConf(const CellWidgetConf &conf);
-
     QString device() const;
-    const CellWidgetConf &conf() const;
+
+    void setGridConf(const GridConf &conf);
+    const GridConf &gridConf() const;
+
+    void setCellConf(const CellConf &conf);
+    const CellConf &cellConf() const;
+
+    void setImageScale(int scale);
 
     void start();
     void stop();
@@ -91,15 +115,8 @@ signals:
     void mouseTap(QPoint);
     void mouseSwipe(QPoint, QPoint, qint64);
 
-public slots:
-    void setDevVisible(bool v);
-    void setKevVisible(bool v);
-    void setCmdVisible(bool v);
-    void setResVisible(bool v);
-    void setResOutSize(int sz);
-    void updateScreen(const QImage &image);
-
 private slots:
+    void onUpdateScreen(const QImage &image);
     void onVideoFinished();
     void onKevBtnClicked();
     void onCmdBtnClicked();
@@ -108,10 +125,17 @@ private slots:
     void onMouseSwipe(const QPointF &ps, const QPointF &pe, qint64 d);
 
 private:
+    void setDevVisible(bool v);
+    void setKevVisible(bool v);
+    void setCmdVisible(bool v);
+    void setResVisible(bool v);
+    void setResOutSize(int sz);
     QPoint toPoint(const QPointF &p) const;
 
 private:
-    CellWidgetConf m_conf{};
+    GridConf m_gridConf{};
+    CellConf m_cellConf{};
+
     AdbClient *m_adb{};
     VideoThread *m_videoThread{};
     QVBoxLayout *m_mainLayout{};

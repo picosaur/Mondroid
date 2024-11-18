@@ -99,19 +99,42 @@ void CellWidget::setDevice(const QString &deviceId)
     m_devInp->setText(deviceId);
 }
 
-void CellWidget::setConf(const CellWidgetConf &conf)
-{
-    m_conf = conf;
-}
-
 QString CellWidget::device() const
 {
     return m_devInp->text();
 }
 
-const CellWidgetConf &CellWidget::conf() const
+void CellWidget::setCellConf(const CellConf &conf)
 {
-    return m_conf;
+    m_cellConf = conf;
+    setDevVisible(m_cellConf.devVisible);
+    setKevVisible(m_cellConf.kevVisible);
+    setCmdVisible(m_cellConf.cmdVisible);
+    setResVisible(m_cellConf.resVisible);
+    setResOutSize(m_cellConf.resOutSize);
+}
+
+const CellConf &CellWidget::cellConf() const
+{
+    return m_cellConf;
+}
+
+void CellWidget::setGridConf(const GridConf &conf)
+{
+    m_gridConf = conf;
+}
+
+const GridConf &CellWidget::gridConf() const
+{
+    return m_gridConf;
+}
+
+void CellWidget::setImageScale(int scale)
+{
+    m_gridConf.scale = scale;
+    if (m_videoThread) {
+        m_videoThread->setImageScalePercent(scale);
+    }
 }
 
 void CellWidget::start()
@@ -125,10 +148,10 @@ void CellWidget::start()
     }
 
     m_adb = new AdbClient();
-    m_adb->setHost(m_conf.host, m_conf.port);
+    m_adb->setHost(m_gridConf.host, m_gridConf.port);
     m_adb->setDevice(m_devInp->text());
 
-    if (m_conf.fast) {
+    if (m_gridConf.fast) {
         auto videoThread = new FastVideoThread();
         m_videoThread = videoThread;
     } else {
@@ -137,12 +160,12 @@ void CellWidget::start()
         m_videoThread = videoThread;
     }
 
-    m_videoThread->setHost(m_conf.host, m_conf.port);
+    m_videoThread->setHost(m_gridConf.host, m_gridConf.port);
     m_videoThread->setDevice(m_devInp->text());
-    m_videoThread->setImageScalePercent(m_conf.scale);
-    m_videoThread->setImageRate(m_conf.rate);
+    m_videoThread->setImageScalePercent(m_gridConf.scale);
+    m_videoThread->setImageRate(m_gridConf.rate);
 
-    connect(m_videoThread, &VideoThread::imageReady, this, &CellWidget::updateScreen);
+    connect(m_videoThread, &VideoThread::imageReady, this, &CellWidget::onUpdateScreen);
     connect(m_videoThread, &VideoThread::finished, this, &CellWidget::onVideoFinished);
     m_videoThread->start();
 }
@@ -194,7 +217,7 @@ void CellWidget::setResOutSize(int sz)
     m_resOut->setFixedHeight(m_resOut->fontMetrics().lineSpacing() * (sz + 1));
 }
 
-void CellWidget::updateScreen(const QImage &image)
+void CellWidget::onUpdateScreen(const QImage &image)
 {
     m_screen->setPixmap(QPixmap::fromImage(image));
     m_screen->setFixedSize(image.size());
@@ -246,5 +269,5 @@ void CellWidget::onCmdBtnClicked()
 
 QPoint CellWidget::toPoint(const QPointF &p) const
 {
-    return QPoint(p.x() * 100.f / m_conf.scale, p.y() * 100.f / m_conf.scale);
+    return QPoint(p.x() * 100.f / m_gridConf.scale, p.y() * 100.f / m_gridConf.scale);
 }

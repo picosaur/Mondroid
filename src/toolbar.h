@@ -15,14 +15,13 @@ class Toolbar : public QToolBar
     Q_OBJECT
 
 signals:
-    void runStateChanged(int state);
-    void applyConfRequested();
+    void confChanged();
 
 public:
     Toolbar(QWidget *parent = nullptr);
     ~Toolbar();
 
-    int runState() const;
+    bool discover() const;
     QString host() const;
     int port() const;
     int rows() const;
@@ -31,14 +30,13 @@ public:
     int rate() const;
     bool fast() const;
 
-    CellWidgetConf cellConf() const;
+    GridConf gridConf() const;
 
     void saveState(QSettings &settings) const;
     void loadState(const QSettings &settings);
 
 private:
     QCheckBox *m_runInp{};
-    QPushButton *m_applyBtn{};
     QLineEdit *m_hostInp{};
     QSpinBox *m_portInp{};
     QSpinBox *m_rowsInp{};

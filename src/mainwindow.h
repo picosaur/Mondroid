@@ -18,16 +18,14 @@ public:
 	~MainWindow();
 
 private slots:
-    void onRunStateChanged(int state);
-    void onApplyConfRequested();
+    void onGridConfChanged();
+    void onCellConfChanged();
 
 private:
     Ui::MainWindow *ui{};
     Toolbar *m_toolbar{};
     Statusbar *m_statusbar{};
     GridWidget *m_gridWidget{};
-
-    void startStop();
 };
 
 #endif // MAINWINDOW_H

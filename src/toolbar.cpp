@@ -11,8 +11,7 @@
 Toolbar::Toolbar(QWidget *parent)
     : QToolBar(parent)
 {
-    m_runInp = new QCheckBox("Run");
-    m_applyBtn = new QPushButton("Apply");
+    m_runInp = new QCheckBox("Discover");
     m_rowsInp = new QSpinBox();
     m_colsInp = new QSpinBox();
     m_hostInp = new QLineEdit();
@@ -49,15 +48,12 @@ Toolbar::Toolbar(QWidget *parent)
     m_rateInp->setMinimum(1);
     m_rateInp->setMaximum(999);
 
-    // Run, Apply
-    addWidget(m_runInp);
-    addWidget(m_applyBtn);
     // Host Port
-    addSeparator();
     addWidget(new QLabel("Host"));
     addWidget(m_hostInp);
     addWidget(new QLabel("Port"));
     addWidget(m_portInp);
+    addWidget(m_runInp);
     // Rows Cols
     addSeparator();
     addWidget(new QLabel("Rows"));
@@ -72,15 +68,21 @@ Toolbar::Toolbar(QWidget *parent)
     addWidget(m_rateInp);
     addWidget(m_fastInp);
 
-    connect(m_runInp, &QCheckBox::stateChanged, this, &Toolbar::runStateChanged);
-    connect(m_applyBtn, &QPushButton::pressed, this, &Toolbar::applyConfRequested);
+    connect(m_runInp, SIGNAL(stateChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_rowsInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_colsInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    //connect(m_hostInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_portInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_scaleInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_rateInp, SIGNAL(valueChanged(int)), this, SIGNAL(confChanged()));
+    connect(m_fastInp, SIGNAL(stateChanged(int)), this, SIGNAL(confChanged()));
 }
 
 Toolbar::~Toolbar() {}
 
-int Toolbar::runState() const
+bool Toolbar::discover() const
 {
-    return int(m_runInp->checkState());
+    return int(m_runInp->isChecked());
 }
 
 QString Toolbar::host() const
@@ -118,9 +120,10 @@ bool Toolbar::fast() const
     return m_fastInp->isChecked();
 }
 
-CellWidgetConf Toolbar::cellConf() const
+GridConf Toolbar::gridConf() const
 {
-    CellWidgetConf conf;
+    GridConf conf;
+    conf.discover = discover();
     conf.host = host();
     conf.port = port();
     conf.rows = rows();
