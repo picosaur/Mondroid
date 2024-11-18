@@ -139,8 +139,7 @@ void CellWidget::setImageScale(int scale)
 
 void CellWidget::start()
 {
-    Q_ASSERT(m_adb == nullptr);
-    Q_ASSERT(m_videoThread == nullptr);
+    stop();
 
     const auto s{m_devInp->text()};
     if (s.isEmpty()) {
@@ -173,15 +172,10 @@ void CellWidget::start()
 void CellWidget::stop()
 {
     if (m_adb) {
-        if (m_adb->isConnected()) {
-            m_adb->close();
-        }
-        m_adb->deleteLater();
-        m_adb = {};
+        delete m_adb;
     }
-
     if (m_videoThread) {
-        m_videoThread->requestInterruption();
+        delete m_videoThread;
     }
     m_screen->setPixmap({});
 }

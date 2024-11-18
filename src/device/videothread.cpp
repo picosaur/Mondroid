@@ -17,11 +17,8 @@ void VideoThread::run()
     m_adb = new AdbClient();
     m_adb->setHost(m_host, m_port);
     m_adb->setDevice(m_deviceId);
-
     loop();
-
-    m_adb->close();
-    m_adb.clear();
+    delete m_adb;
 }
 
 void VideoThread::loop()

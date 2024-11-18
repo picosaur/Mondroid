@@ -25,6 +25,7 @@ void GridWidget::initGrid(const GridConf &conf)
         return;
     }*/
 
+    setDiscover(false);
     auto currDevList = devList();
 
     freeGrid();

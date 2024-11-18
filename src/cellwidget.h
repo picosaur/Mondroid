@@ -2,6 +2,7 @@
 #define CELLWIDGET_H
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPointer>
 #include <QWidget>
 #include <qelapsedtimer.h>
 
@@ -136,8 +137,9 @@ private:
     GridConf m_gridConf{};
     CellConf m_cellConf{};
 
-    AdbClient *m_adb{};
-    VideoThread *m_videoThread{};
+    QPointer<AdbClient> m_adb;
+    QPointer<VideoThread> m_videoThread;
+
     QVBoxLayout *m_mainLayout{};
     QScrollArea *m_area{};
     ScreenLabel *m_screen{};
